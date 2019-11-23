@@ -13,7 +13,7 @@
     "batches",
     "dataloader",
     "async",
-    "Primise",
+    "Promise",
     "timeout",
     "cache"
   ],
