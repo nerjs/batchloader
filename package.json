@@ -9,6 +9,14 @@
   "repository": "git@github.com:nerjs/batchloader.git",
   "author": "nerjs <nerjs.stap@gmail.com>",
   "license": "MIT",
+  "keywords": [
+    "batches",
+    "dataloader",
+    "async",
+    "Primise",
+    "timeout",
+    "cache"
+  ],
   "devDependencies": {
     "babel-eslint": "^10.0.3",
     "eslint": "^6.6.0",
