@@ -54,3 +54,8 @@ clear cache
 ### loader.clearMany()
 ### loader.resolve(keyData, result)
 ### loader.reject(keyData, Error)
+
+
+---
+
+#### [:link: All utils ](https://github.com/nerjs/utils#readme)
