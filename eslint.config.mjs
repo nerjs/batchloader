@@ -6,32 +6,16 @@ import eslintConfigPrettier from 'eslint-config-prettier'
 import eslintPluginPrettier from 'eslint-plugin-prettier'
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended'
 
-const globalNames = [...Object.getOwnPropertyNames(globalThis), 'require', 'module', 'exports']
-
-const wrap = cfg => ({
-  ...cfg,
-  files: ['src/**/*.ts', 'examples/**/*.ts'],
-  ignores: ['dist/**/*', '**/dist/**/*'], 
-  languageOptions: {
-    ...(cfg?.languageOptions || {}),
-    globals: {
-      ...(cfg?.languageOptions?.globals || {}),
-      ...globalNames.reduce((acc, key) => ({ ...acc, [key]: 'readonly' }), {}),
-    },
-  }
-})
-
-const configs = [
+const config = tseslint.config(
+  {
+    ignores: ['lib/**/*', 'dist/**/*', '__tests__/**/*'],
+  },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   ...tseslint.configs.stylistic,
   eslintConfigPrettier,
   eslintPluginPrettierRecommended,
-].map(wrap)
-
-export default tseslint.config(
-  ...configs,
-  wrap({
+  {
     plugins: {
       prettier: eslintPluginPrettier,
     },
@@ -57,7 +41,9 @@ export default tseslint.config(
       '@typescript-eslint/no-require-imports': ['warn', { allow: ['@nerjs/batchloader'] }],
       '@typescript-eslint/no-unsafe-function-type': 'off',
       'no-prototype-builtins': 'off',
-      'no-fallthrough': ["error", { "allowEmptyCase": true }]
+      'no-fallthrough': ['error', { allowEmptyCase: true }],
     },
-  }),
+  },
 )
+
+export default config

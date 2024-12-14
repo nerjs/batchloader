@@ -1,11 +1,11 @@
 {
   "name": "@nerjs/batchloader",
   "version": "1.0.12",
-  "main": "dist/index.js",
+  "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "lint": "eslint --report-unused-disable-directives-severity=off",
+    "lint": "eslint",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage --runInBand"
@@ -36,5 +36,8 @@
     "ts-jest": "^29.2.5",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.0"
+  },
+  "dependencies": {
+    "helpers-promise": "^1.3.0"
   }
 }
