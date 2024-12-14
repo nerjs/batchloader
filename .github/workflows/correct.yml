@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
   push:
     branches: 
-      - master
+      - main
       - develop
       - dependencies
       - 'dependencies-**'
   pull_request:
     # Sequence of patterns matched against refs/heads
     branches:
-      - master
+      - main
       - dependencies
       
 
