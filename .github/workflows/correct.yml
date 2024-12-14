@@ -1,0 +1,53 @@
+name: Checking the correctness of files
+
+on:
+  workflow_dispatch:
+  push:
+    branches: 
+      - master
+      - develop
+      - dependencies
+      - 'dependencies-**'
+  pull_request:
+    # Sequence of patterns matched against refs/heads
+    branches:
+      - master
+      - dependencies
+      
+
+jobs:
+  try-build:
+    strategy:
+      matrix:
+        node-version:
+          - 18
+          - 20
+        os: 
+          - ubuntu-22.04
+          - ubuntu-20.04
+    runs-on:  ${{ matrix.os }}
+    name: os:${{ matrix.os }}; node:${{ matrix.node-version }}. Run linter, tests and Trying to build
+    steps:
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Dependencies installation
+        run: npm ci
+      - name: check versions
+        run: |
+          node -v
+          npm -v
+      - name: run linter
+        run: npm run lint 
+      - name: run build
+        run: npm run build
+      - name: run tests in development env
+        run: npm run test -- --bail=2 --ci --coverage=true --runInBand --coverageReporters=text
+      - name: run tests in production env
+        run: NODE_ENV=production npm run test -- --bail=2 --ci --coverage=false --runInBand
+
+      - name: check
+        run: git status

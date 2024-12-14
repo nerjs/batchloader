@@ -1,0 +1,11 @@
+{
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "javascript.preferences.importModuleSpecifier": "project-relative",
+    "typescript.preferences.importModuleSpecifier": "shortest",
+    "editor.foldingImportsByDefault": false,
+    "eslint.options": {
+      "overrideConfigFile": "./eslint.config.mjs",
+    },
+    "eslint.workingDirectories": ["./"],
+    "eslint.experimental.useFlatConfig": true
+}
