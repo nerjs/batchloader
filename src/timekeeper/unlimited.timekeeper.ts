@@ -1,56 +1,43 @@
-import { isCommonError, isPromise } from '../utils/is'
+import { isCommonError } from '../utils/is'
 import { TimekeeperAbortError, TimekeeperTimeoutError } from './errors'
-import { InitiateDataFactory, ITask, ITimekeeper, RunnerCallback, TaskStatus } from './interfaces'
+import { ITask, ITimekeeper, IUnlimitedTimekeeperMetrics, UnlimitedTimekeeperOptions } from './interfaces'
 import { Task } from './task'
+import createDebug from 'debug'
+const debug = createDebug('batchloader:timekeeper')
 
-export interface IUnlimitedTimekeeperMetrics {
-  create?: () => void
-  forcedRun?: () => void
-  abort?: (status: TaskStatus, error: unknown) => void
-  runTask?: (runnedSize: number, createdAt: number) => void
-  resolveTask?: (runnedAt: number) => void
-  rejectTask?: (error: unknown, status: TaskStatus, createdAt: number, runnedAt: number) => void
-}
-
-export interface UnlimitedTimekeeperOptions<D> {
-  initialDataFactory: InitiateDataFactory<D>
-  runMs: number
-  runner: RunnerCallback<D>
-  timeoutMs: number
-  callRejectedTask?: boolean
-}
-
-export class UnlimitedTimekeeper<D> implements ITimekeeper<D> {
+export class UnlimitedTimekeeper<D, M extends IUnlimitedTimekeeperMetrics = IUnlimitedTimekeeperMetrics> implements ITimekeeper<D> {
   protected currentTask: Task<D> | null = null
   protected runnedTasks = new Map<string, Task<D>>()
 
   constructor(
     protected readonly options: UnlimitedTimekeeperOptions<D>,
-    private readonly unlimitedMetrics?: IUnlimitedTimekeeperMetrics,
+    protected readonly metrics?: M,
   ) {}
 
   current(): ITask<D> {
     if (this.currentTask) return this.currentTask.inner
-
     const task = new Task(this.options.initialDataFactory())
+    debug(`Create new task. id="${task.id}"`)
     this.currentTask = task
     this.startRunnerTimeout()
-    this.unlimitedMetrics?.create?.()
+    this.metrics?.create?.()
     return task.inner
   }
 
   run(): void {
     if (!this.currentTask) return
     this.clearRunnerTimeout()
-    this.unlimitedMetrics?.forcedRun?.()
+    this.metrics?.forcedRun?.()
+    debug(`The current task is started manually. id="${this.currentTask.id}"`)
     this.runCurrentTask()
   }
 
   abort(task: string | ITask<D>, reason?: unknown): void {
     const target = this.findTask(task)
     if (target) {
+      debug(`Abort task. id="${target.id}"`)
       const error = isCommonError(reason) ? reason : new TimekeeperAbortError(reason)
-      this.unlimitedMetrics?.abort?.(target.status, error)
+      this.metrics?.abort?.(target.inner, error)
       switch (target.status) {
         case 'runned':
           this.rejectRunnedTask(target, error)
@@ -85,7 +72,10 @@ export class UnlimitedTimekeeper<D> implements ITimekeeper<D> {
   private startRunnerTimeout() {
     this.clearRunnerTimeout()
 
-    this.tidRunner = setTimeout(() => this.runCurrentTask(), this.options.runMs)?.unref()
+    this.tidRunner = setTimeout(() => {
+      debug(`The current task is started by a timer. id=${this.currentTask?.id}`)
+      this.runCurrentTask()
+    }, this.options.runMs)?.unref()
   }
 
   private clearRunnerTimeout() {
@@ -102,6 +92,15 @@ export class UnlimitedTimekeeper<D> implements ITimekeeper<D> {
     }
   }
 
+  private async callRunner(task: Task<D>, signal: AbortSignal, toThrow?: boolean) {
+    try {
+      await this.options.runner(task.inner, signal)
+    } catch (error) {
+      debug(`Aborted runner terminated with an error. id="${task.id}"`)
+      if (toThrow) throw error
+    }
+  }
+
   protected runTask(task: Task<D>) {
     task.status = 'runned'
     task.controller = task.controller || new AbortController()
@@ -109,15 +108,11 @@ export class UnlimitedTimekeeper<D> implements ITimekeeper<D> {
     task.tid = setTimeout(() => this.abort(task.id, new TimekeeperTimeoutError(Date.now() - runnedTime)), this.options.timeoutMs)?.unref()
 
     this.runnedTasks.set(task.id, task)
-    this.unlimitedMetrics?.runTask?.(this.runnedTasks.size, task.createdAt)
+    this.metrics?.runTask?.(this.runnedTasks.size, task.inner)
 
-    try {
-      const result = this.options.runner(task.inner, task.controller.signal)
-      if (isPromise(result)) result.then(() => this.resolveTask(task)).catch(error => this.rejectRunnedTask(task, error))
-      else setTimeout(() => this.resolveTask(task), 1)?.unref()
-    } catch (error) {
-      setTimeout(() => this.rejectRunnedTask(task, error), 1)?.unref()
-    }
+    this.callRunner(task, task.controller.signal, true)
+      .then(() => this.resolveTask(task))
+      .catch(error => this.rejectRunnedTask(task, error))
   }
 
   private resolveTask(task: Task<D>) {
@@ -125,8 +120,9 @@ export class UnlimitedTimekeeper<D> implements ITimekeeper<D> {
     this.runnedTasks.delete(task.id)
     if (task.status !== 'runned') return
     task.status = 'resolved'
+    debug(`The task was resolved. id="${task.id}"`)
     task.defer.resolve(task.inner.data)
-    this.unlimitedMetrics?.resolveTask?.(task.runnedAt || task.createdAt)
+    this.metrics?.resolveTask?.(task.inner)
   }
 
   private rejectRunnedTask(task: Task<D>, error: unknown) {
@@ -135,26 +131,22 @@ export class UnlimitedTimekeeper<D> implements ITimekeeper<D> {
     this.runnedTasks.delete(task.id)
     task.controller?.abort(error)
     task.defer.reject(error)
-    this.unlimitedMetrics?.rejectTask?.(error, task.status, task.createdAt, task.runnedAt || task.createdAt)
+    this.metrics?.rejectTask?.(error, task.inner)
+    debug(`The task was rejected. id="${task.id}"`)
   }
 
   protected rejectPendingTask(task: Task<D>, error: unknown) {
     this.clearRunnerTimeout()
     this.currentTask = null
-    this.unlimitedMetrics?.rejectTask?.(error, task.status, task.createdAt, task.runnedAt || task.createdAt)
+    this.metrics?.rejectTask?.(error, task.inner)
     this.callAbortedRunner(task, error)
+    debug(`The task was rejected. id="${task.id}"`)
   }
 
   protected callAbortedRunner(task: Task<D>, error: unknown) {
     task.status = 'rejected'
 
-    if (this.options.callRejectedTask) {
-      try {
-        this.options.runner(task.inner, AbortSignal.abort(error))?.catch(() => {})
-      } catch {
-        // ...
-      }
-    }
+    if (this.options.callRejectedTask) this.callRunner(task, AbortSignal.abort(error), false)
     task.defer.reject(error)
   }
 }

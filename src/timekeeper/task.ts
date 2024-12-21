@@ -23,6 +23,14 @@ export class InnerTask<D> implements ITask<D> {
   get status() {
     return this.task.status
   }
+
+  get runnedAt() {
+    return this.task.runnedAt
+  }
+
+  get createdAt() {
+    return this.task.createdAt
+  }
 }
 
 export class Task<D> {

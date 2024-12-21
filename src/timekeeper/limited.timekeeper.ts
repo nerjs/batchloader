@@ -1,29 +1,18 @@
 import { TimekeeperTimeoutError } from './errors'
-import { ITask, ITimekeeper } from './interfaces'
+import { ILimitedTimekeeperMetrics, ITask, ITimekeeper, LimitedOptions, LimitedTimekeeperOptions } from './interfaces'
 import { Task } from './task'
-import { IUnlimitedTimekeeperMetrics, UnlimitedTimekeeper, UnlimitedTimekeeperOptions } from './unlimited.timekeeper'
+import { UnlimitedTimekeeper } from './unlimited.timekeeper'
 
-interface LimitedOptions {
-  concurrencyLimit: number
-  maxWaitingTimeMs: number
-}
+import createDebug from 'debug'
+const debug = createDebug('batchloader:timekeeper')
 
-export interface ILimitedTimekeeperMetrics {
-  waitTask?: (waitListSize: number) => void
-}
-
-export type LimitedTimekeeperOptions<D> = UnlimitedTimekeeperOptions<D> & LimitedOptions
-
-export class LimitedTimekeeper<D> extends UnlimitedTimekeeper<D> implements ITimekeeper<D> {
+export class LimitedTimekeeper<D> extends UnlimitedTimekeeper<D, ILimitedTimekeeperMetrics> implements ITimekeeper<D> {
   private readonly limitedOptions: LimitedOptions
 
   private waitingTasks: Task<D>[] = []
 
-  constructor(
-    { concurrencyLimit, maxWaitingTimeMs, ...options }: LimitedTimekeeperOptions<D>,
-    private readonly limitedMetrics?: ILimitedTimekeeperMetrics & IUnlimitedTimekeeperMetrics,
-  ) {
-    super(options, limitedMetrics)
+  constructor({ concurrencyLimit, maxWaitingTimeMs, ...options }: LimitedTimekeeperOptions<D>, metrics?: ILimitedTimekeeperMetrics) {
+    super(options, metrics)
     this.limitedOptions = { concurrencyLimit, maxWaitingTimeMs }
   }
 
@@ -35,6 +24,7 @@ export class LimitedTimekeeper<D> extends UnlimitedTimekeeper<D> implements ITim
     const next = this.waitingTasks.shift()
     if (next) {
       if (next.tid) clearTimeout(next.tid)
+      debug(`Attempting to run a task from the waiting list. id="${next.id}"`)
       this.runTask(next)
     }
   }
@@ -46,12 +36,15 @@ export class LimitedTimekeeper<D> extends UnlimitedTimekeeper<D> implements ITim
       return
     }
     const runnedTime = Date.now()
-    task.tid = setTimeout(
-      () => this.abort(task.id, new TimekeeperTimeoutError(Date.now() - runnedTime)),
-      this.limitedOptions.maxWaitingTimeMs,
-    )?.unref()
+    task.tid = setTimeout(() => {
+      debug(
+        `A task on the waiting list is waiting longer than it should. id="${task.id}"; time="${Date.now() - runnedTime}"; maxWaitingTimeMs="${this.limitedOptions.maxWaitingTimeMs}"`,
+      )
+      this.abort(task.id, new TimekeeperTimeoutError(Date.now() - runnedTime))
+    }, this.limitedOptions.maxWaitingTimeMs)?.unref()
     this.waitingTasks.push(task)
-    this.limitedMetrics?.waitTask?.(this.waitingTasks.length)
+    this.metrics?.waitTask?.(this.waitingTasks.length)
+    debug(`The task has been added to the waiting list. id="${task.id}"`)
   }
 
   protected findTaskById(id: string): Task<D> | null {
@@ -62,8 +55,9 @@ export class LimitedTimekeeper<D> extends UnlimitedTimekeeper<D> implements ITim
     if (this.currentTask?.id === task.id) return super.rejectPendingTask(task, error)
     this.waitingTasks = this.waitingTasks.filter(({ id }) => id !== task.id)
     if (task.tid) clearTimeout(task.tid)
-    this.limitedMetrics?.rejectTask?.(error, task.status, task.createdAt, task.runnedAt || task.createdAt)
+    this.metrics?.rejectTask?.(error, task.inner)
     this.callAbortedRunner(task, error)
+    debug(`The task was rejected. id="${task.id}"`)
   }
 
   clear(): void {

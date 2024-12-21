@@ -1,7 +1,14 @@
 import { sleep } from '../../utils/sleep'
-import { ITimekeeper, TaskStatus } from '../interfaces'
-import { ILimitedTimekeeperMetrics, LimitedTimekeeper, LimitedTimekeeperOptions } from '../limited.timekeeper'
-import { IUnlimitedTimekeeperMetrics, UnlimitedTimekeeper, UnlimitedTimekeeperOptions } from '../unlimited.timekeeper'
+import {
+  ILimitedTimekeeperMetrics,
+  ITask,
+  ITimekeeper,
+  IUnlimitedTimekeeperMetrics,
+  LimitedTimekeeperOptions,
+  UnlimitedTimekeeperOptions,
+} from '../interfaces'
+import { LimitedTimekeeper } from '../limited.timekeeper'
+import { UnlimitedTimekeeper } from '../unlimited.timekeeper'
 
 class UnlimitedMetrics implements IUnlimitedTimekeeperMetrics {
   private created: number = 0
@@ -14,20 +21,20 @@ class UnlimitedMetrics implements IUnlimitedTimekeeperMetrics {
     this.created++
   }
 
-  runTask(runnedSize: number, _createdAt: number) {
+  runTask(runnedSize: number, _task: ITask<any>) {
     this.runned++
     if (this.maxRunnedSize < runnedSize) this.maxRunnedSize = runnedSize
   }
 
-  resolveTask(runnedAt: number) {
+  resolveTask(task: ITask<any>) {
     this.resolved++
-    const runnedTime = Date.now() - runnedAt
+    const runnedTime = Date.now() - (task.runnedAt || task.createdAt)
     if (this.maxRunnedTime < runnedTime) this.maxRunnedTime = runnedTime
   }
 
-  rejectTask(error: unknown, status: TaskStatus, createdAt: number, runnedAt: number) {
+  rejectTask(error: unknown, task: ITask<any>) {
     this.rejected++
-    const runnedTime = Date.now() - runnedAt
+    const runnedTime = Date.now() - (task.runnedAt || task.createdAt)
     if (this.maxRunnedTime < runnedTime) this.maxRunnedTime = runnedTime
   }
 
@@ -37,16 +44,16 @@ class UnlimitedMetrics implements IUnlimitedTimekeeperMetrics {
   }
 }
 
-class LimitedMetrics extends UnlimitedMetrics implements IUnlimitedTimekeeperMetrics, ILimitedTimekeeperMetrics {
+class LimitedMetrics extends UnlimitedMetrics implements ILimitedTimekeeperMetrics {
   private maxWaitingSize = 0
   private maxWaitingTime = 0
   waitTask(waitListSize: number) {
     if (this.maxWaitingSize < waitListSize) this.maxWaitingSize = waitListSize
   }
 
-  runTask(runnedSize: number, createdAt: number): void {
-    super.runTask(runnedSize, createdAt)
-    const waitingTime = Date.now() - createdAt
+  runTask(runnedSize: number, task: ITask<any>): void {
+    super.runTask(runnedSize, task)
+    const waitingTime = Date.now() - (task.runnedAt || task.createdAt)
     if (this.maxWaitingTime < waitingTime) this.maxWaitingTime = waitingTime
   }
 
@@ -75,7 +82,7 @@ describe('Timekeepers with metrics.', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    runnerFn.mockImplementation(() => sleep(100))
+    runnerFn.mockImplementation(() => sleep(100, true))
   })
 
   afterEach(() => {
@@ -120,10 +127,10 @@ describe('Timekeepers with metrics.', () => {
     })
 
     it('max run time', async () => {
-      runnerFn.mockImplementation(() => sleep(800))
+      runnerFn.mockImplementation(() => sleep(800, true))
       const task = timekeeper.current()
       timekeeper.run()
-      runnerFn.mockImplementation(() => sleep(500))
+      runnerFn.mockImplementation(() => sleep(500, true))
       timekeeper.current()
       timekeeper.run()
 

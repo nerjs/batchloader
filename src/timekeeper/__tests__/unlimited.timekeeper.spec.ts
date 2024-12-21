@@ -1,7 +1,7 @@
 import { sleep } from '../../utils/sleep'
 import { TimekeeperAbortError, TimekeeperTimeoutError } from '../errors'
-import { ITask } from '../interfaces'
-import { UnlimitedTimekeeper, UnlimitedTimekeeperOptions } from '../unlimited.timekeeper'
+import { ITask, UnlimitedTimekeeperOptions } from '../interfaces'
+import { UnlimitedTimekeeper } from '../unlimited.timekeeper'
 
 type Data = { field: string }
 
@@ -21,7 +21,7 @@ describe('Unlimited Timekeeper', () => {
   beforeEach(() => {
     timekeeper = new UnlimitedTimekeeper(options)
     jest.clearAllMocks()
-    runnerFn.mockImplementation(() => sleep(100))
+    runnerFn.mockImplementation(() => sleep(100, true))
   })
 
   afterEach(() => {
@@ -75,7 +75,7 @@ describe('Unlimited Timekeeper', () => {
   })
 
   it('A task successfully completed (asynchronously) changes status to resolved', async () => {
-    runnerFn.mockImplementation(async () => sleep(100))
+    runnerFn.mockImplementation(async () => sleep(100, true))
     const task = timekeeper.current()
     timekeeper.run()
 
@@ -98,7 +98,7 @@ describe('Unlimited Timekeeper', () => {
   it('A task that ends with an error (asynchronously) changes status to rejected', async () => {
     const error = new Error('qwerty')
     runnerFn.mockImplementation(async () => {
-      await sleep(100)
+      await sleep(100, true)
       throw error
     })
     const task = timekeeper.current()
@@ -112,7 +112,7 @@ describe('Unlimited Timekeeper', () => {
     const callAbort = jest.fn()
     runnerFn.mockImplementation(async (_task: ITask<Data>, signal: AbortSignal) => {
       signal.addEventListener('abort', () => callAbort(signal.reason))
-      await sleep(timeoutMs + 100)
+      await sleep(timeoutMs + 100, true)
     })
 
     const task = timekeeper.current()
@@ -154,7 +154,7 @@ describe('Unlimited Timekeeper', () => {
     const callAbort = jest.fn()
     runnerFn.mockImplementation(async (_task: ITask<Data>, signal: AbortSignal) => {
       signal.addEventListener('abort', () => callAbort(signal.reason))
-      await sleep(timeoutMs + 100)
+      await sleep(timeoutMs + 100, true)
     })
 
     const task = timekeeper.current()

@@ -1,7 +1,7 @@
 import { sleep } from '../../utils/sleep'
 import { TimekeeperAbortError, TimekeeperTimeoutError } from '../errors'
-import { ITask } from '../interfaces'
-import { LimitedTimekeeper, LimitedTimekeeperOptions } from '../limited.timekeeper'
+import { ITask, LimitedTimekeeperOptions } from '../interfaces'
+import { LimitedTimekeeper } from '../limited.timekeeper'
 
 type Data = { field: string }
 
@@ -25,7 +25,7 @@ describe('Unlimited Timekeeper', () => {
     timekeeper = new LimitedTimekeeper(options)
     jest.clearAllMocks()
     jest.resetAllMocks()
-    runnerFn.mockImplementation(() => sleep(100))
+    runnerFn.mockImplementation(() => sleep(100, true))
   })
 
   afterEach(() => {
@@ -72,7 +72,7 @@ describe('Unlimited Timekeeper', () => {
         ...options,
         callRejectedTask: true,
       })
-      runnerFn.mockImplementation(async () => sleep(maxWaitingTimeMs + 100))
+      runnerFn.mockImplementation(async () => sleep(maxWaitingTimeMs + 100, true))
       skipTasks()
 
       runnerFn.mockClear()
@@ -89,7 +89,7 @@ describe('Unlimited Timekeeper', () => {
         ...options,
         callRejectedTask: false,
       })
-      runnerFn.mockImplementation(async () => sleep(maxWaitingTimeMs + 100))
+      runnerFn.mockImplementation(async () => sleep(maxWaitingTimeMs + 100, true))
       skipTasks()
 
       runnerFn.mockClear()
