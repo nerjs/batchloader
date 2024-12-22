@@ -1,6 +1,7 @@
+import { Key } from '../interfaces'
+
 export type DeduplicatorRunnerCallback<T, R> = (query: T, signal: AbortSignal) => Promise<R> | R
 
-export type Key = string | number
 export interface IDeduplicatorOptions<T> {
   /**
    * @description Function to extract the key from a query

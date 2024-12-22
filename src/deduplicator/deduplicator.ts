@@ -1,7 +1,8 @@
 import { Defer } from '../utils/defer'
 import createDebug from 'debug'
 import { RejectedAbortError, SilentAbortError, TimeoutError } from '../utils/errors'
-import { DeduplicatorRunnerCallback, IDeduplicatorOptions, Key } from './interfaces'
+import { DeduplicatorRunnerCallback, IDeduplicatorOptions } from './interfaces'
+import { Key } from '../interfaces'
 const debug = createDebug('batchloader:deduplicator')
 
 interface Runner<T> {
