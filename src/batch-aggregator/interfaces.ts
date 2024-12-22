@@ -22,7 +22,7 @@ export interface IBatchAggregatorOptions {
   /**
    * @description Maximum execution time for batchFn (the function passed as the first argument)
    */
-  batchTimeout: number
+  timeoutMs: number
 }
 
 export type BatchLoaderFn<T, R> = (batchArray: T[], signal: AbortSignal) => Promise<R[]> | R[]

@@ -1,3 +1,4 @@
+import { SilentAbortError } from '../utils/errors'
 import { isCommonError } from '../utils/is'
 import { TimekeeperAbortError, TimekeeperTimeoutError } from './errors'
 import { ITask, ITimekeeper, IUnlimitedTimekeeperMetrics, UnlimitedTimekeeperOptions } from './interfaces'
@@ -55,7 +56,7 @@ export class UnlimitedTimekeeper<D, M extends IUnlimitedTimekeeperMetrics = IUnl
 
   clear(): void {
     this.clearRunnerTimeout()
-    this.runnedTasks.forEach(task => this.abort(task.inner))
+    this.runnedTasks.forEach(task => this.abort(task.inner, new SilentAbortError('timekeeper')))
   }
 
   private findTask(taskId: string | Pick<ITask<any>, 'id'>): Task<D> | null {

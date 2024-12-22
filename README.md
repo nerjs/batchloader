@@ -57,6 +57,110 @@ clear cache
 
 
 ---
+---
+
+### Deduplicator
+
+`Deduplicator` is a module designed to prevent duplicate execution of identical requests. If two or more requests share the same key, they are grouped and executed as a single request. All subsequent requests receive results from the already-running request.
+
+---
+
+#### Key Features
+- **Request Deduplication**: Groups requests with the same key to avoid redundant executions.
+- **Execution Timeouts**: Supports task timeouts (`timeoutMs`).
+- **Task Cancellation Management**: Uses `AbortSignal` for safe task termination.
+- **Flexible Timer Control**: Option `unrefTimeouts` allows timers to avoid blocking the event loop.
+
+---
+
+#### Configuration Options
+```typescript
+interface IDeduplicatorOptions<T> {
+  getKey: (query: T) => Key            // Function to extract the key from a query
+  timeoutMs: number                   // Task execution timeout
+  unrefTimeouts?: boolean             // Allows timers to avoid blocking the event loop
+}
+```
+
+---
+
+#### Usage Examples
+
+##### Basic Usage
+```typescript
+import { Deduplicator } from '@nerjs/batchloader'
+
+const deduplicator = new Deduplicator<number, number>(
+  async (query: number, signal: AbortSignal) => {
+    if (signal.aborted) throw new Error('Aborted')
+    return query * 2
+  },
+  {
+    getKey: query => query,
+    timeoutMs: 500,
+  }
+)
+
+const result = await deduplicator.call(5)
+console.log(result) // 10
+```
+
+---
+
+##### Request Deduplication
+```typescript
+const results = await Promise.all([
+  deduplicator.call(1),
+  deduplicator.call(1), // Joins the first request
+  deduplicator.call(2)
+])
+
+console.log(results) // [2, 2, 4]
+```
+
+---
+
+##### Handling Timeouts
+```typescript
+const deduplicator = new Deduplicator<number, number>(
+  async () => {
+    await new Promise(res => setTimeout(res, 1000))
+    return 42
+  },
+  {
+    getKey: query => query,
+    timeoutMs: 500, // Specified timeout
+  }
+)
+
+await deduplicator.call(1).catch(err => console.error(err.message)) // TimeoutError
+```
+
+---
+
+#### Methods
+
+##### `call(query: T): Promise<R>`
+Adds a query to the execution queue or joins an already running request with the same key. Returns a promise with the result of the task execution.
+
+---
+
+##### `clear()`
+Cancels all active tasks and clears their state.
+```typescript
+deduplicator.clear()
+```
+
+---
+
+#### Error Handling
+
+ - `TimeoutError` Thrown if the task execution exceeds the specified time limit (`timeoutMs`).
+ - `RejectedAbortError` Thrown if the request is forcefully aborted during execution.
+ - `SilentAbortError` Thrown if the task is canceled during clearing (`clear()`).
+
+---
+---
 
 ### utils
 

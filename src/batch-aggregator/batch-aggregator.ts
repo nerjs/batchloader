@@ -42,7 +42,7 @@ export class BatchAggregator<T, R> {
     private readonly options: IBatchAggregatorOptions,
     private readonly metrics?: IBatchAggregatorMetrics,
   ) {
-    const { concurrencyLimit, maxWaitingTimeMs, batchTimeMs: runMs, batchTimeout: timeoutMs } = options
+    const { concurrencyLimit, maxWaitingTimeMs, batchTimeMs: runMs, timeoutMs } = options
     const initialDataFactory = () => ({ requests: [], responses: [] })
     this.timekeeper =
       concurrencyLimit && concurrencyLimit > 0 && concurrencyLimit < Infinity

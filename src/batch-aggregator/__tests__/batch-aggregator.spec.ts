@@ -12,7 +12,7 @@ describe('BatchAggregator', () => {
   const defaultOptions: IBatchAggregatorOptions = {
     maxBatchSize: 3,
     batchTimeMs: 10,
-    batchTimeout: 500,
+    timeoutMs: 500,
   }
   const mockLoader = jest.fn(async (batch: number[], signal: AbortSignal) => {
     if (signal.aborted) throw new Error('Aborted')

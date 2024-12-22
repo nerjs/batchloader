@@ -1,3 +1,4 @@
+import { SilentAbortError } from '../utils/errors'
 import { TimekeeperTimeoutError } from './errors'
 import { ILimitedTimekeeperMetrics, ITask, ITimekeeper, LimitedOptions, LimitedTimekeeperOptions } from './interfaces'
 import { Task } from './task'
@@ -62,6 +63,6 @@ export class LimitedTimekeeper<D> extends UnlimitedTimekeeper<D, ILimitedTimekee
 
   clear(): void {
     super.clear()
-    this.waitingTasks.forEach(task => this.abort(task.inner))
+    this.waitingTasks.forEach(task => this.abort(task.inner, new SilentAbortError('timekeeper')))
   }
 }

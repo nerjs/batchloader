@@ -8,7 +8,7 @@ export interface ITask<D> {
   createdAt: number
 }
 
-export type RunnerCallback<D> = (task: ITask<D>, signal: AbortSignal) => Promise<void> | void
+export type TimekeeperRunnerCallback<D> = (task: ITask<D>, signal: AbortSignal) => Promise<void> | void
 export type InitiateDataFactory<D> = () => D
 
 export interface ITimekeeper<D> {
@@ -22,7 +22,7 @@ export interface ITimekeeper<D> {
 export interface UnlimitedTimekeeperOptions<D> {
   initialDataFactory: InitiateDataFactory<D>
   runMs: number
-  runner: RunnerCallback<D>
+  runner: TimekeeperRunnerCallback<D>
   timeoutMs: number
   callRejectedTask?: boolean
 }
