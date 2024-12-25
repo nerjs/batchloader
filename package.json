@@ -42,8 +42,6 @@
     "typescript-eslint": "^8.18.0"
   },
   "dependencies": {
-    "dataloader": "^2.2.3",
-    "debug": "^4.4.0",
-    "helpers-promise": "^1.3.0"
+    "debug": "^4.4.0"
   }
 }

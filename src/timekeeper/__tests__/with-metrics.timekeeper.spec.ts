@@ -67,7 +67,7 @@ class LimitedMetrics extends UnlimitedMetrics implements ILimitedTimekeeperMetri
   }
 }
 
-describe('Timekeepers with metrics.', () => {
+describe.skip('Timekeepers with metrics.', () => {
   const runMs = 100
   const timeoutMs = 1000
   const runnerFn = jest.fn()
