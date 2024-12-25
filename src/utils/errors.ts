@@ -1,30 +1,21 @@
-export class CommonError extends Error {
+export class LoaderError extends Error {
   get name() {
     return this.constructor.name
   }
-
-  toJSON() {
-    const { name, message, ...value } = this
-    return {
-      message,
-      name,
-      ...value,
-    }
-  }
 }
 
-export class TimeoutError extends CommonError {
+export class TimeoutError extends LoaderError {
   constructor(readonly delay: number) {
     super(`Operation exceeded the maximum timeout of ${delay} ms.`)
   }
 }
 
-export class AbortError extends CommonError {
+export class AbortError extends LoaderError {
   constructor(
     readonly operation: string,
-    reason?: string,
+    reason?: unknown,
   ) {
-    super(`Operation "${operation}" was aborted${reason ? `. ${reason}` : ''}`, { cause: reason })
+    super(`Operation "${operation}" was aborted${reason && typeof reason === 'string' ? `. ${reason}` : ''}`, { cause: reason })
   }
 }
 

@@ -1,5 +1,5 @@
+import { AbortError, TimeoutError } from '../../utils/errors'
 import { sleep } from '../../utils/sleep'
-import { TimekeeperAbortError, TimekeeperTimeoutError } from '../errors'
 import { ITask, LimitedTimekeeperOptions } from '../interfaces'
 import { LimitedTimekeeper } from '../limited.timekeeper'
 
@@ -79,8 +79,8 @@ describe('Unlimited Timekeeper', () => {
 
       const task = timekeeper.current()
       timekeeper.run()
-      await expect(() => timekeeper.wait(task)).rejects.toThrow(TimekeeperTimeoutError)
-      expect(runnerFn).toHaveBeenCalledWith(task, expect.objectContaining({ aborted: true, reason: expect.any(TimekeeperTimeoutError) }))
+      await expect(() => timekeeper.wait(task)).rejects.toThrow(TimeoutError)
+      expect(runnerFn).toHaveBeenCalledWith(task, expect.objectContaining({ aborted: true, reason: expect.any(TimeoutError) }))
       expect(task.status).toEqual('rejected')
     })
 
@@ -96,7 +96,7 @@ describe('Unlimited Timekeeper', () => {
 
       const task = timekeeper.current()
       timekeeper.run()
-      await expect(() => timekeeper.wait(task)).rejects.toThrow(TimekeeperTimeoutError)
+      await expect(() => timekeeper.wait(task)).rejects.toThrow(TimeoutError)
       expect(runnerFn).not.toHaveBeenCalled()
       expect(task.status).toEqual('rejected')
     })
@@ -115,8 +115,8 @@ describe('Unlimited Timekeeper', () => {
         const task = timekeeper.current()
         setTimeout(() => timekeeper.abort(task), 10)
 
-        await expect(() => timekeeper.wait(task)).rejects.toThrow(TimekeeperAbortError)
-        expect(runnerFn).toHaveBeenCalledWith(task, expect.objectContaining({ aborted: true, reason: expect.any(TimekeeperAbortError) }))
+        await expect(() => timekeeper.wait(task)).rejects.toThrow(AbortError)
+        expect(runnerFn).toHaveBeenCalledWith(task, expect.objectContaining({ aborted: true, reason: expect.any(AbortError) }))
         expect(task.status).toEqual('rejected')
       })
 
@@ -128,8 +128,8 @@ describe('Unlimited Timekeeper', () => {
         timekeeper.run()
         setTimeout(() => timekeeper.abort(task), 10)
 
-        await expect(() => timekeeper.wait(task)).rejects.toThrow(TimekeeperAbortError)
-        expect(runnerFn).toHaveBeenCalledWith(task, expect.objectContaining({ aborted: true, reason: expect.any(TimekeeperAbortError) }))
+        await expect(() => timekeeper.wait(task)).rejects.toThrow(AbortError)
+        expect(runnerFn).toHaveBeenCalledWith(task, expect.objectContaining({ aborted: true, reason: expect.any(AbortError) }))
         expect(task.status).toEqual('rejected')
       })
     })
@@ -145,7 +145,7 @@ describe('Unlimited Timekeeper', () => {
         const task = timekeeper.current()
         setTimeout(() => timekeeper.abort(task), 10)
 
-        await expect(() => timekeeper.wait(task)).rejects.toThrow(TimekeeperAbortError)
+        await expect(() => timekeeper.wait(task)).rejects.toThrow(AbortError)
         expect(runnerFn).not.toHaveBeenCalled()
         expect(task.status).toEqual('rejected')
       })
@@ -158,7 +158,7 @@ describe('Unlimited Timekeeper', () => {
         timekeeper.run()
         setTimeout(() => timekeeper.abort(task), 10)
 
-        await expect(() => timekeeper.wait(task)).rejects.toThrow(TimekeeperAbortError)
+        await expect(() => timekeeper.wait(task)).rejects.toThrow(AbortError)
         expect(runnerFn).not.toHaveBeenCalled()
         expect(task.status).toEqual('rejected')
       })

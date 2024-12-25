@@ -1,6 +1,5 @@
-import { SilentAbortError } from '../utils/errors'
-import { isCommonError } from '../utils/is'
-import { TimekeeperAbortError, TimekeeperTimeoutError } from './errors'
+import { AbortError, SilentAbortError, TimeoutError } from '../utils/errors'
+import { isLoaderError } from '../utils/is'
 import { ITask, ITimekeeper, IUnlimitedTimekeeperMetrics, UnlimitedTimekeeperOptions } from './interfaces'
 import { Task } from './task'
 import createDebug from 'debug'
@@ -37,7 +36,7 @@ export class UnlimitedTimekeeper<D, M extends IUnlimitedTimekeeperMetrics = IUnl
     const target = this.findTask(task)
     if (target) {
       debug(`Abort task. id="${target.id}"`)
-      const error = isCommonError(reason) ? reason : new TimekeeperAbortError(reason)
+      const error = isLoaderError(reason) ? reason : new AbortError('timekeeper', reason)
       this.metrics?.abort?.(target.inner, error)
       switch (target.status) {
         case 'runned':
@@ -105,8 +104,7 @@ export class UnlimitedTimekeeper<D, M extends IUnlimitedTimekeeperMetrics = IUnl
   protected runTask(task: Task<D>) {
     task.status = 'runned'
     task.controller = task.controller || new AbortController()
-    const runnedTime = Date.now()
-    task.tid = setTimeout(() => this.abort(task.id, new TimekeeperTimeoutError(Date.now() - runnedTime)), this.options.timeoutMs)?.unref()
+    task.tid = setTimeout(() => this.abort(task.id, new TimeoutError(this.options.timeoutMs)), this.options.timeoutMs)?.unref()
 
     this.runnedTasks.set(task.id, task)
     this.metrics?.runTask?.(this.runnedTasks.size, task.inner)

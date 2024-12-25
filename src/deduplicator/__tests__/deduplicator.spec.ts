@@ -109,5 +109,19 @@ describe('Deduplicator', () => {
       await expect(defer.promise).rejects.toThrow('Aborted')
       await expect(call).rejects.toThrow(SilentAbortError)
     })
+
+    it('restarts timeout with restartTimeout()', async () => {
+      const runner = jest.fn(async () => {
+        await sleep(150, true)
+        return 42
+      })
+
+      deduplicator = new Deduplicator(runner, { ...defaultOptions, timeoutMs: 100 })
+      const result = deduplicator.call(1)
+      await sleep(75)
+      deduplicator.restartTimeout(1) // Restart timeout before expiration
+
+      await expect(result).resolves.toBe(42)
+    })
   })
 })

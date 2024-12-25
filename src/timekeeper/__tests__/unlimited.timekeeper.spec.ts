@@ -1,5 +1,5 @@
+import { AbortError, TimeoutError } from '../../utils/errors'
 import { sleep } from '../../utils/sleep'
-import { TimekeeperAbortError, TimekeeperTimeoutError } from '../errors'
 import { ITask, UnlimitedTimekeeperOptions } from '../interfaces'
 import { UnlimitedTimekeeper } from '../unlimited.timekeeper'
 
@@ -118,8 +118,8 @@ describe('Unlimited Timekeeper', () => {
     const task = timekeeper.current()
     timekeeper.run()
 
-    await expect(() => timekeeper.wait(task)).rejects.toThrow(TimekeeperTimeoutError)
-    expect(callAbort).toHaveBeenCalledWith(expect.any(TimekeeperTimeoutError))
+    await expect(() => timekeeper.wait(task)).rejects.toThrow(TimeoutError)
+    expect(callAbort).toHaveBeenCalledWith(expect.any(TimeoutError))
   })
 
   describe('Calling abort on a pending task', () => {
@@ -131,8 +131,8 @@ describe('Unlimited Timekeeper', () => {
       const task = timekeeper.current()
       setTimeout(() => timekeeper.abort(task), 10)
 
-      await expect(() => timekeeper.wait(task)).rejects.toThrow(TimekeeperAbortError)
-      expect(runnerFn).toHaveBeenCalledWith(task, expect.objectContaining({ aborted: true, reason: expect.any(TimekeeperAbortError) }))
+      await expect(() => timekeeper.wait(task)).rejects.toThrow(AbortError)
+      expect(runnerFn).toHaveBeenCalledWith(task, expect.objectContaining({ aborted: true, reason: expect.any(AbortError) }))
       expect(task.status).toEqual('rejected')
     })
 
@@ -144,7 +144,7 @@ describe('Unlimited Timekeeper', () => {
       const task = timekeeper.current()
       setTimeout(() => timekeeper.abort(task), 10)
 
-      await expect(() => timekeeper.wait(task)).rejects.toThrow(TimekeeperAbortError)
+      await expect(() => timekeeper.wait(task)).rejects.toThrow(AbortError)
       expect(runnerFn).not.toHaveBeenCalled()
       expect(task.status).toEqual('rejected')
     })
@@ -161,8 +161,8 @@ describe('Unlimited Timekeeper', () => {
     timekeeper.run()
     setTimeout(() => timekeeper.abort(task), 10)
 
-    await expect(() => timekeeper.wait(task)).rejects.toThrow(TimekeeperAbortError)
-    expect(callAbort).toHaveBeenCalledWith(expect.any(TimekeeperAbortError))
+    await expect(() => timekeeper.wait(task)).rejects.toThrow(AbortError)
+    expect(callAbort).toHaveBeenCalledWith(expect.any(AbortError))
     expect(task.status).toEqual('rejected')
   })
 })

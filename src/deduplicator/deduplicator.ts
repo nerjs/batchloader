@@ -8,7 +8,7 @@ const debug = createDebug('batchloader:deduplicator')
 interface Runner<T> {
   defer: Defer<T>
   controller: AbortController
-  tid: NodeJS.Timeout | null
+  tid: NodeJS.Timeout
 }
 
 export class Deduplicator<T, R> {
@@ -41,12 +41,13 @@ export class Deduplicator<T, R> {
   private clearRunner(key: Key) {
     const runner = this.runners.get(key)
     if (runner) {
-      if (runner.tid) {
-        clearTimeout(runner.tid)
-        runner.tid = null
-      }
+      clearTimeout(runner.tid)
       this.runners.delete(key)
     }
+  }
+
+  private createTimeout(key: Key): NodeJS.Timeout {
+    return setTimeout(() => this.callError(key, new TimeoutError(this.options.timeoutMs)), this.options.timeoutMs)
   }
 
   private createRunner(key: Key, query: T): Defer<R> {
@@ -54,7 +55,7 @@ export class Deduplicator<T, R> {
 
     const controller = new AbortController()
 
-    const tid = setTimeout(() => this.callError(key, new TimeoutError(this.options.timeoutMs)), this.options.timeoutMs)
+    const tid = this.createTimeout(key)
     if (this.options.unrefTimeouts) tid?.unref?.()
 
     this.run(query, controller.signal)
@@ -86,6 +87,16 @@ export class Deduplicator<T, R> {
     debug('Call next runner')
     const current = this.getOrCreateRunner(query)
     return await current.promise
+  }
+
+  restartTimeout(query: T) {
+    const key = this.options.getKey(query)
+    const runned = this.runners.get(key)
+
+    if (runned) {
+      clearTimeout(runned.tid)
+      runned.tid = this.createTimeout(key)
+    }
   }
 
   /**

@@ -1,9 +1,9 @@
 import { ILimitedTimekeeperMetrics, ITask, ITimekeeper } from '../timekeeper/interfaces'
 import { LimitedTimekeeper } from '../timekeeper/limited.timekeeper'
 import { UnlimitedTimekeeper } from '../timekeeper/unlimited.timekeeper'
-import { BatchError } from './errors'
 import createDebug from 'debug'
 import { BatchLoaderFn, IBatchAggregatorMetrics, IBatchAggregatorOptions } from './interfaces'
+import { LoaderError } from '../utils/errors'
 const debug = createDebug('batchloader:aggregator')
 
 interface TaskData<T, R> {
@@ -32,7 +32,7 @@ export class BatchAggregator<T, R> {
     debug(`Running batchRunner with a query array of length ${task.data.requests.length}. task id="${task.id}"`)
     const response = await this.batchLoaderFn([...task.data.requests], signal)
     if (!Array.isArray(response) || response.length !== task.data.requests.length)
-      throw new BatchError(`The result of batchLoadFn must be an array equal in length to the query array `)
+      throw new LoaderError(`The result of batchLoadFn must be an array equal in length to the query array `)
 
     task.data.responses = response
   }

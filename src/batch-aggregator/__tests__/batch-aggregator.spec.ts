@@ -1,7 +1,6 @@
-import { TimekeeperTimeoutError } from '../../timekeeper/errors'
+import { LoaderError, TimeoutError } from '../../utils/errors'
 import { sleep } from '../../utils/sleep'
 import { BatchAggregator } from '../batch-aggregator'
-import { BatchError } from '../errors'
 import { IBatchAggregatorOptions } from '../interfaces'
 
 /** Mock implementations */
@@ -31,12 +30,12 @@ describe('BatchAggregator', () => {
   describe('Negative Cases', () => {
     it('throws error if batchLoaderFn returns non-array response', async () => {
       aggregator = new BatchAggregator(async () => 42 as any, defaultOptions)
-      await expect(aggregator.load(1)).rejects.toThrow(BatchError)
+      await expect(aggregator.load(1)).rejects.toThrow(LoaderError)
     })
 
     it('throws error if batchLoaderFn response length does not match requests', async () => {
       aggregator = new BatchAggregator(async () => [1, 2], defaultOptions)
-      await expect(aggregator.load(1)).rejects.toThrow(BatchError)
+      await expect(aggregator.load(1)).rejects.toThrow(LoaderError)
     })
 
     it('throws error when batchLoaderFn fails', async () => {
@@ -132,10 +131,7 @@ describe('BatchAggregator', () => {
         maxWaitingTimeMs: 100,
       })
 
-      await Promise.all([
-        expect(aggregator.load(1)).resolves.toEqual(2),
-        expect(aggregator.load(3)).rejects.toThrow(TimekeeperTimeoutError),
-      ])
+      await Promise.all([expect(aggregator.load(1)).resolves.toEqual(2), expect(aggregator.load(3)).rejects.toThrow(TimeoutError)])
     })
   })
 })

@@ -1,71 +1,136 @@
-# BatchLoader
 
-utility for batch data processing. The [DataLoader](https://github.com/graphql/dataloader) is taken as an example.
+`BatchLoader` is a tool for batching data requests with support for deduplication, caching, and parallel task management. It is designed to enhance flexibility and performance in scenarios requiring asynchronous data processing. This module was inspired by [Facebook's Dataloader](https://github.com/graphql/dataloader).
 
-Collects data over a specified time or within a specified amount
+## Key Features
+- **Batching Requests:** Combines multiple requests into batches, minimizing the number of calls.
+- **Parallel Task Limitation:** Controls the number of concurrent tasks using the `concurrencyLimit` parameter.
+- **Request Deduplication:** Eliminates duplicate requests with the same keys, redirecting them to already running tasks.
+- **Flexible Caching:** Supports adapters for external storage like Redis and provides cache invalidation management.
+- **Timeout Control:** Manages execution time for individual tasks and batches.
+- **Delay Before Batch Execution:** Allows small delays to improve efficiency in asynchronous workflows.
+
+## Problems Addressed by This Module
+
+1. **Coupling Deduplication and Caching:**
+   - In the original `Dataloader`, deduplication is tightly coupled with caching. Disabling caching also disables deduplication.
+   - In `BatchLoader`, deduplication and caching are separate, allowing caching to be disabled without losing deduplication.
+
+2. **Inconvenient Cache Management:**
+   - In `Dataloader`, all cached data must be manually cleared, which is difficult to coordinate in distributed systems (e.g., PM2, Docker Swarm, or Kubernetes).
+   - `BatchLoader` supports cache adapters and provides methods for clearing or resetting the cache, making it easier to manage in distributed systems.
+
+3. **Synchronous Batch Formation:**
+   - In `Dataloader`, batches are formed synchronously within a single event loop. While it allows custom scheduling with `batchScheduleFn`, this approach is complex and redundant.
+   - `BatchLoader` supports configurable delays (`batchTimeMs`) before batch execution, enabling more efficient handling of asynchronous requests arriving at slightly different times.
+
+
+---
+---
+
+
+# Main modules:
+
+## BatchLoader
+
+`BatchLoader` is a tool for grouping requests into batches and processing them efficiently with support for deduplication and caching.
 
 ---
 
-## install 
-```
-npm i @nerjs/batchloader
-// or:
-yarn add @nerjs/batchloader
-```
+### Key Features
+- **Batching requests:** Processes multiple requests simultaneously, reducing the number of calls.
+- **Parallel task limits:** Controls the number of concurrent tasks using the `concurrencyLimit` parameter.
+- **Request deduplication:** Prevents duplicate requests with the same keys, redirecting them to existing tasks.
+- **Caching:** Stores results in a cache for reuse.
+- **Timeouts:** Manages execution time for requests and batches.
 
-## usage
+---
 
-```js
-const BatchLoader = require('@nerjs/batchloader')
-// or:
-import BatchLoader from '@nerjs/batchloader'
-
-const batchLoadFn = arr => {
-    return arr.map(n => n * 2)
+### Configuration Options
+```typescript
+interface IBatchLoaderOptions<K, R> {
+  getKey?: (query: K) => Key           // Function to generate a request key (default: query => `${query}`)
+  cache?: ICache<R>                   // Cache adapter (default: StubCache)
+  timeoutMs?: number                  // Task execution timeout (default: 60,000 ms)
+  unrefTimeouts?: boolean             // Allows timers to free the event loop (default: false)
+  concurrencyLimit?: number           // Maximum number of parallel tasks (default: Infinity)
+  maxBatchSize?: number               // Maximum number of requests per batch (default: 1000)
+  batchTimeMs?: number                // Maximum time to form a batch (default: 50 ms)
+  maxWaitingTimeMs?: number           // Maximum queue waiting time (only if concurrencyLimit > 0) (default: 60,000 ms)
 }
-
-const loader = new BatchLoader(batchLoadFn)
-
-loader.load(1).then(result => {
-    console.log(result) // console: 2
-})
-
 ```
 
-## API 
+---
 
-api is maximally repeated from the [DataLoader API](https://github.com/graphql/dataloader#api) with small additions.
+### Example Usage
+```typescript
+import { BatchLoader } from '@nerjs/batchloader'
 
-### class DataLoader(batchLoadFn, [, options])
+const loader = new BatchLoader(
+  async (queries: number[]) => queries.map(q => q * 2),
+  {
+    timeoutMs: 100,
+    maxBatchSize: 3,
+    batchTimeMs: 50,
+  }
+)
 
-* ***batchLoadFn***: A function which accepts an Array of keys, and returns a Promise which resolves to an Array of values.
-* ***options***:
-    | key | type | default |
-    |:--|:--:|:--:|
-    | maxSize   | Number   | 1000 | 
-    | cacheTime | Number   | 10   | 
-    | batchTime | Number   | 10   |
-    | getKey    | Function | null |
+const result = await loader.load(5)
+console.log(result) // 10
+```
 
-### loader.load(any)
-### loader.loadMany(Array)
-### loader.clear()
-clear cache
-### loader.clearMany()
-### loader.resolve(keyData, result)
-### loader.reject(keyData, Error)
+---
+
+### Cache Examples
+#### Using Cache
+```typescript
+const loader = new BatchLoader(
+  async (queries: number[]) => queries.map(q => q * 2),
+  {
+    cache: new MapCache<number>(),
+    timeoutMs: 100,
+  }
+)
+
+const result = await loader.load(5)
+console.log(result) // 10
+```
+
+#### Clearing Cache
+```typescript
+await loader.resetCache(5) // Removes the result for the specified query
+await loader.flush() // Clears the entire cache
+```
+
+---
+
+### Methods
+
+#### `load(query: K): Promise<R>`
+Adds a request to the current batch. If the batch reaches the maximum size (`maxBatchSize`) or the timeout (`batchTimeMs`) expires, it is processed immediately. Returns a promise with the result of the request.
+
+**Parameters:**
+- **`query: K`** — The request added to the batch.
+
+#### `resetCache(query: K): Promise<void>`
+Clears the cache for the specified key.
+
+#### `clear(): void`
+Cancels all tasks and clears their state.
+
+#### `flush(): Promise<void>`
+Clears the entire cache.
 
 
 ---
 ---
 
-### Deduplicator
+## Deduplicator
 
 `Deduplicator` is a module designed to prevent duplicate execution of identical requests. If two or more requests share the same key, they are grouped and executed as a single request. All subsequent requests receive results from the already-running request.
 
 ---
 
-#### Key Features
+### Key Features
 - **Request Deduplication**: Groups requests with the same key to avoid redundant executions.
 - **Execution Timeouts**: Supports task timeouts (`timeoutMs`).
 - **Task Cancellation Management**: Uses `AbortSignal` for safe task termination.
@@ -73,7 +138,7 @@ clear cache
 
 ---
 
-#### Configuration Options
+### Configuration Options
 ```typescript
 interface IDeduplicatorOptions<T> {
   getKey: (query: T) => Key            // Function to extract the key from a query
@@ -84,9 +149,9 @@ interface IDeduplicatorOptions<T> {
 
 ---
 
-#### Usage Examples
+### Usage Examples
 
-##### Basic Usage
+#### Basic Usage
 ```typescript
 import { Deduplicator } from '@nerjs/batchloader'
 
@@ -107,7 +172,7 @@ console.log(result) // 10
 
 ---
 
-##### Request Deduplication
+#### Request Deduplication
 ```typescript
 const results = await Promise.all([
   deduplicator.call(1),
@@ -120,7 +185,7 @@ console.log(results) // [2, 2, 4]
 
 ---
 
-##### Handling Timeouts
+#### Handling Timeouts
 ```typescript
 const deduplicator = new Deduplicator<number, number>(
   async () => {
@@ -138,14 +203,14 @@ await deduplicator.call(1).catch(err => console.error(err.message)) // TimeoutEr
 
 ---
 
-#### Methods
+### Methods
 
-##### `call(query: T): Promise<R>`
+#### `call(query: T): Promise<R>`
 Adds a query to the execution queue or joins an already running request with the same key. Returns a promise with the result of the task execution.
 
 ---
 
-##### `clear()`
+#### `clear()`
 Cancels all active tasks and clears their state.
 ```typescript
 deduplicator.clear()
@@ -153,29 +218,36 @@ deduplicator.clear()
 
 ---
 
-#### Error Handling
+## Possible Errors
 
- - `TimeoutError` Thrown if the task execution exceeds the specified time limit (`timeoutMs`).
- - `RejectedAbortError` Thrown if the request is forcefully aborted during execution.
- - `SilentAbortError` Thrown if the task is canceled during clearing (`clear()`).
+All errors inherit from the base class `LoaderError` and are designed to handle various situations that may arise during request execution.
+
+### `TimeoutError`
+Occurs when the specified execution time for a task or batch (`timeoutMs`) is exceeded. This error can be thrown by both the deduplicator and the batch aggregator.
+
+### `SilentAbortError`
+Occurs when a task is intentionally canceled, for example, during a call to the `clear()` method. It is used for safely terminating tasks without generating exceptions.
+
+### `AbortError`, `RejectedAbortError`
+Thrown when a task is manually aborted during execution, explicitly indicating the process termination.
+
+
+
 
 ---
 ---
 
-### utils
-
----
----
+# utils:
 
 
-### BatchAggregator
+## BatchAggregator
 
 
 `BatchAggregator` is a utility for grouping multiple requests into batches and processing them in bulk. It optimizes task execution by managing batch size, execution timing, and concurrency limits.
 
 ---
 
-#### Key Features
+### Key Features
 
 - **Request Grouping**: Groups requests into batches based on size or timeout.
 - **Concurrency Control**: Limits the number of tasks that can run in parallel (`concurrencyLimit`).
@@ -183,7 +255,7 @@ deduplicator.clear()
 
 ---
 
-#### Configuration Options
+### Configuration Options
 
 ```typescript
 interface IBatchAggregatorOptions {
@@ -197,7 +269,7 @@ interface IBatchAggregatorOptions {
 
 ---
 
-#### Usage Examples:
+### Usage Examples:
 
 #### Basic Example
 
@@ -282,7 +354,7 @@ await Promise.all([
 
 ---
 
-#### Methods
+### Methods
 
 #### `load(request: T): Promise<R>`
 
@@ -301,7 +373,9 @@ aggregator.clear()
 ---
 ---
 
-### Unlimited Timekeeper
+## Unlimited Timekeeper
+
+
 A class for managing tasks without restrictions on parallel execution.
 
 
@@ -327,7 +401,8 @@ How to interact with data:
  - In the runner, you can access data via task.data.
 
 ---
-Usage Example:
+
+### Usage Example:
 
 ```typescript
 import { UnlimitedTimekeeper } from '@nerjs/batchloader'
@@ -352,7 +427,7 @@ await timekeeper.wait(task);
 ---
 ---
 
-### Limited Timekeeper
+## Limited Timekeeper
 
 A class for managing tasks with restrictions on parallel execution. Inherits functionality from UnlimitedTimekeeper.
 

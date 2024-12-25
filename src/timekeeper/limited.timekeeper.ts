@@ -1,5 +1,4 @@
-import { SilentAbortError } from '../utils/errors'
-import { TimekeeperTimeoutError } from './errors'
+import { SilentAbortError, TimeoutError } from '../utils/errors'
 import { ILimitedTimekeeperMetrics, ITask, ITimekeeper, LimitedOptions, LimitedTimekeeperOptions } from './interfaces'
 import { Task } from './task'
 import { UnlimitedTimekeeper } from './unlimited.timekeeper'
@@ -41,7 +40,7 @@ export class LimitedTimekeeper<D> extends UnlimitedTimekeeper<D, ILimitedTimekee
       debug(
         `A task on the waiting list is waiting longer than it should. id="${task.id}"; time="${Date.now() - runnedTime}"; maxWaitingTimeMs="${this.limitedOptions.maxWaitingTimeMs}"`,
       )
-      this.abort(task.id, new TimekeeperTimeoutError(Date.now() - runnedTime))
+      this.abort(task.id, new TimeoutError(this.limitedOptions.maxWaitingTimeMs))
     }, this.limitedOptions.maxWaitingTimeMs)?.unref()
     this.waitingTasks.push(task)
     this.metrics?.waitTask?.(this.waitingTasks.length)

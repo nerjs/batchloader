@@ -1,7 +1,6 @@
 let num = 0
 const count = () => {
   num++
-  if (num > 1000000) num = 0
   return num
 }
 
