@@ -12,7 +12,7 @@ const prepareOptions = <K, R>(options: IBatchLoaderOptions<K, R>) => ({
   concurrencyLimit: Infinity,
   maxBatchSize: 1000,
   batchTimeMs: 50,
-  maxWaitingTimeMs: 60,
+  maxWaitingTimeMs: 60_000,
   ...options,
 })
 
