@@ -1,19 +1,23 @@
-import * as DataLoader from 'dataloader'
-import { sleep } from './utils/sleep'
+export { Key } from './utils/interfaces'
 
-const loader = new DataLoader<number, number>(
-  async arr => {
-    console.log(arr)
-    await sleep(100)
-    return arr.map(n => n * 2)
-  },
-  {
-    cache: false,
-  },
-)
+export { IBatchLoaderOptions, ICache } from './batch-loader/interfaces'
+export { BatchLoader } from './batch-loader/batch-loader'
+export { CacheAdapter, MapCache } from './batch-loader/cache-adapter'
 
-;(async () => {
-  const result = await Promise.all([loader.load(1), loader.load(2), loader.load(2)])
+export { DeduplicatorRunnerCallback, IDeduplicatorOptions } from './deduplicator/interfaces'
+export { Deduplicator } from './deduplicator/deduplicator'
 
-  console.log({ result })
-})()
+export { BatchLoaderFn, IBatchAggregatorOptions } from './batch-aggregator/interfaces'
+export { BatchAggregator } from './batch-aggregator/batch-aggregator'
+
+export {
+  ITask,
+  ITimekeeper,
+  InitiateDataFactory,
+  LimitedTimekeeperOptions,
+  UnlimitedTimekeeperOptions,
+  TaskStatus,
+  TimekeeperRunnerCallback,
+} from './timekeeper/interfaces'
+export { UnlimitedTimekeeper } from './timekeeper/unlimited.timekeeper'
+export { LimitedTimekeeper } from './timekeeper/limited.timekeeper'

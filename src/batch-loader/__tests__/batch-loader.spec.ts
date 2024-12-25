@@ -1,7 +1,8 @@
-import { BatchLoader, IBatchLoaderOptions } from '../batch-loader'
-import { ICache, MapCache, StubCache } from '../cache-adapter'
+import { BatchLoader } from '../batch-loader'
+import { MapCache, StubCache } from '../cache-adapter'
 import { LoaderError, TimeoutError } from '../../utils/errors'
 import { sleep } from '../../utils/sleep'
+import { IBatchLoaderOptions, ICache } from '../interfaces'
 
 const defaultOptions: IBatchLoaderOptions<number, number> = {
   timeoutMs: 100,

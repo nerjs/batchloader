@@ -1,7 +1,7 @@
 {
   "name": "@nerjs/batchloader",
   "version": "1.0.13",
-  "main": "lib/index.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
@@ -16,6 +16,7 @@
   "keywords": [
     "batches",
     "dataloader",
+    "deduplicate",
     "async",
     "Promise",
     "timeout",

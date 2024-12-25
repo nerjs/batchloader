@@ -1,4 +1,4 @@
-import { Key } from '../interfaces'
+import { Key } from '../utils/interfaces'
 
 export type DeduplicatorRunnerCallback<T, R> = (query: T, signal: AbortSignal) => Promise<R> | R
 

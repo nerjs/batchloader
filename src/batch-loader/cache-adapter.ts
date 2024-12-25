@@ -1,11 +1,5 @@
-import { Key } from '../interfaces'
-
-export interface ICache<T> {
-  get(key: Key): Promise<T | undefined>
-  set(key: Key, data: T): Promise<void>
-  delete(key: Key): Promise<void>
-  clear(): Promise<void>
-}
+import { Key } from '../utils/interfaces'
+import { ICache } from './interfaces'
 
 export class StubCache implements ICache<any> {
   async get(_key: Key): Promise<any> {

@@ -1,5 +1,6 @@
-import { CacheAdapter, ICache, MapCache } from '../cache-adapter'
-import { Key } from '../../interfaces'
+import { CacheAdapter, MapCache } from '../cache-adapter'
+import { Key } from '../../utils/interfaces'
+import { ICache } from '../interfaces'
 
 /** Общие тестовые параметры */
 const testKey: Key = 'testKey'
