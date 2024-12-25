@@ -10,7 +10,7 @@
       "sourceMap": true,
       "outDir": "./dist",
       "baseUrl": "./src",
-      "incremental": true,
+      "incremental": false,
       "skipLibCheck": true,
       "strictNullChecks": true,
       "noImplicitAny": false,
@@ -19,7 +19,8 @@
       "noFallthroughCasesInSwitch": false,
       "strict": true,
       "resolveJsonModule": true,
-      "useDefineForClassFields": false
+      "useDefineForClassFields": false,
+      "noEmitOnError": true,
     },
     "include": ["src"]
   }

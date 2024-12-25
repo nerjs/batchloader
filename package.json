@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "watch": "tsc --watch",
     "lint": "eslint",
     "test": "jest",
