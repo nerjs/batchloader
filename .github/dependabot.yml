@@ -8,7 +8,38 @@ updates:
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
-      interval: "weekly" 
+      interval: "weekly"
+      time: "17:00"
     assignees:
       - "nerjs"
+    labels:
+      - "dependencies"
+      - "bot"
     target-branch: "dependencies"
+    open-pull-requests-limit: 5
+    groups:
+      typescript:
+        patterns:
+          - "typescript"
+          - "@types/node"
+
+      eslint:
+        patterns:
+          - "@eslint/eslintrc"
+          - "@eslint/js"
+          - "@types/eslint__js"
+          - "eslint-config-prettier"
+          - "eslint-plugin-prettier"
+          - "prettier"
+          - "typescript-eslint"
+
+      jest:
+        patterns:
+          - "jest"
+          - "jest-watch-typeahead"
+          - "ts-jest"
+          - "@types/jest"
+      debug:
+        patterns:
+          - "debug"
+          - "@types/debug"
