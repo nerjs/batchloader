@@ -1,4 +1,4 @@
-name: Checking the correctness of files
+name: "CI: tests, linter and build"
 
 on:
   workflow_dispatch:
@@ -22,9 +22,10 @@ jobs:
         node-version:
           - 18
           - 20
+          - 22
         os: 
           - ubuntu-22.04
-          - ubuntu-20.04
+          - ubuntu-latest
     runs-on:  ${{ matrix.os }}
     name: os:${{ matrix.os }}; node:${{ matrix.node-version }}. Run linter, tests and Trying to build
     steps:

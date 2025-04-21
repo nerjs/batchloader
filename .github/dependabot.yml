@@ -25,6 +25,7 @@ updates:
 
       eslint:
         patterns:
+          - "eslint"
           - "@eslint/eslintrc"
           - "@eslint/js"
           - "@types/eslint__js"

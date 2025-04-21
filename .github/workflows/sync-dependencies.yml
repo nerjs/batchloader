@@ -1,4 +1,4 @@
-name: Sync dependencies with main
+name: "SYNC: dependencies with main"
 
 
 on:
@@ -22,7 +22,7 @@ jobs:
           ref: dependencies
 
       - name: pull main
-        run: git pull origin main
+        run: git merge origin/main --no-edit
 
       - name: push into dependencies
         run: git push origin dependencies
