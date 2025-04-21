@@ -20,6 +20,9 @@ jobs:
         with:
           token: ${{ secrets.PUBLISH_TOKEN }}
           ref: dependencies
+          
+      - name: fetch
+        run: git fetch
 
       - name: pull main
         run: git merge origin/main --no-edit
