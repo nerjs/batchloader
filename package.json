@@ -43,6 +43,6 @@
     "typescript-eslint": "^8.41.0"
   },
   "dependencies": {
-    "debug": "^4.4.1"
+    "debug": "^4.4.3"
   }
 }
