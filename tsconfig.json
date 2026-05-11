@@ -1,15 +1,14 @@
 {
-    "compilerOptions": {    
+    "compilerOptions": {
       "module": "commonjs",
       "types": ["node", "jest"],
-      "moduleResolution": "Node",
+      "moduleResolution": "node10",
       "declaration": true,
       "removeComments": false,
       "allowSyntheticDefaultImports": true,
       "target": "ES2023",
       "sourceMap": true,
       "outDir": "./dist",
-      "baseUrl": "./src",
       "incremental": false,
       "skipLibCheck": true,
       "strictNullChecks": true,
@@ -20,7 +19,7 @@
       "strict": true,
       "resolveJsonModule": true,
       "useDefineForClassFields": false,
-      "noEmitOnError": true,
+      "noEmitOnError": true
     },
     "include": ["src"]
   }
