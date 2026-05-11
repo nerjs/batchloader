@@ -2,9 +2,21 @@ import { ILimitedTimekeeperMetrics, ITask, ITimekeeper } from '../timekeeper/int
 import { LimitedTimekeeper } from '../timekeeper/limited.timekeeper'
 import { UnlimitedTimekeeper } from '../timekeeper/unlimited.timekeeper'
 import createDebug from 'debug'
-import { BatchLoaderFn, IBatchAggregatorMetrics, IBatchAggregatorOptions } from './interfaces'
+import { BatchLoaderFn, DEFAULT_MAX_WAITING_TIME_MS, IBatchAggregatorMetrics, IBatchAggregatorOptions } from './interfaces'
 import { LoaderError } from '../utils/errors'
 const debug = createDebug('batchloader:aggregator')
+
+export const validateAggregatorOptions = (o: IBatchAggregatorOptions) => {
+  if (!Number.isFinite(o.timeoutMs) || o.timeoutMs <= 0) throw new RangeError(`timeoutMs must be > 0`)
+  if (!Number.isFinite(o.batchTimeMs) || o.batchTimeMs < 0) throw new RangeError(`batchTimeMs must be >= 0`)
+  if (!Number.isInteger(o.maxBatchSize) || o.maxBatchSize < 1) throw new RangeError(`maxBatchSize must be a positive integer`)
+  if (o.concurrencyLimit !== undefined && o.concurrencyLimit !== Infinity) {
+    if (!Number.isInteger(o.concurrencyLimit) || o.concurrencyLimit < 1)
+      throw new RangeError(`concurrencyLimit must be a positive integer or Infinity`)
+    if (o.maxWaitingTimeMs !== undefined && (!Number.isFinite(o.maxWaitingTimeMs) || o.maxWaitingTimeMs <= 0))
+      throw new RangeError(`maxWaitingTimeMs must be > 0`)
+  }
+}
 
 interface TaskData<T, R> {
   requests: T[]
@@ -42,15 +54,16 @@ export class BatchAggregator<T, R> {
     private readonly options: IBatchAggregatorOptions,
     private readonly metrics?: IBatchAggregatorMetrics,
   ) {
+    validateAggregatorOptions(options)
     const { concurrencyLimit, maxWaitingTimeMs, batchTimeMs: runMs, timeoutMs, unrefTimeouts } = options
     const initialDataFactory = () => ({ requests: [], responses: [] })
     this.timekeeper =
-      concurrencyLimit && concurrencyLimit > 0 && concurrencyLimit < Infinity
+      concurrencyLimit !== undefined && concurrencyLimit !== Infinity
         ? new LimitedTimekeeper(
             {
               concurrencyLimit,
               initialDataFactory,
-              maxWaitingTimeMs: maxWaitingTimeMs || 60_000,
+              maxWaitingTimeMs: maxWaitingTimeMs ?? DEFAULT_MAX_WAITING_TIME_MS,
               runMs,
               runner: this.batchRunner,
               timeoutMs,

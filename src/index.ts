@@ -1,6 +1,6 @@
 export { Key } from './utils/interfaces'
 
-export { IBatchLoaderOptions, ICache } from './batch-loader/interfaces'
+export { IBatchLoaderOptions, IBatchLoaderMetrics, ICache } from './batch-loader/interfaces'
 export { BatchLoader } from './batch-loader/batch-loader'
 export { CacheAdapter, MapCache } from './batch-loader/cache-adapter'
 

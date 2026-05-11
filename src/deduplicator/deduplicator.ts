@@ -1,6 +1,7 @@
 import { Defer } from '../utils/defer'
 import createDebug from 'debug'
 import { RejectedAbortError, SilentAbortError, TimeoutError } from '../utils/errors'
+import { unrefTimer } from '../utils/timer'
 import { DeduplicatorRunnerCallback, IDeduplicatorOptions } from './interfaces'
 import { Key } from '../utils/interfaces'
 const debug = createDebug('batchloader:deduplicator')
@@ -47,9 +48,10 @@ export class Deduplicator<T, R> {
   }
 
   private createTimeout(key: Key): NodeJS.Timeout {
-    const tid = setTimeout(() => this.callError(key, new TimeoutError(this.options.timeoutMs)), this.options.timeoutMs)
-    if (this.options.unrefTimeouts) tid?.unref?.()
-    return tid
+    return unrefTimer(
+      setTimeout(() => this.callError(key, new TimeoutError(this.options.timeoutMs)), this.options.timeoutMs),
+      this.options.unrefTimeouts,
+    )
   }
 
   private createRunner(key: Key, query: T): Defer<R> {

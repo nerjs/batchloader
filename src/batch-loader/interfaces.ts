@@ -1,3 +1,4 @@
+import { IBatchAggregatorMetrics } from '../batch-aggregator/interfaces'
 import { Key } from '../utils/interfaces'
 
 export interface ICache<T> {
@@ -6,6 +7,8 @@ export interface ICache<T> {
   delete(key: Key): Promise<void>
   clear(): Promise<void>
 }
+
+export interface IBatchLoaderMetrics extends IBatchAggregatorMetrics {}
 
 export interface IBatchLoaderOptions<K, R> {
   /**
@@ -24,7 +27,7 @@ export interface IBatchLoaderOptions<K, R> {
 
   /**
    * @description Allows timers to avoid blocking the event loop
-   * @default false
+   * @default true
    */
   unrefTimeouts?: boolean
 
@@ -51,4 +54,9 @@ export interface IBatchLoaderOptions<K, R> {
    * @default 60_000
    */
   maxWaitingTimeMs?: number
+
+  /**
+   * @description Optional metrics hooks. Forwarded to the internal BatchAggregator.
+   */
+  metrics?: IBatchLoaderMetrics
 }

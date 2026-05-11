@@ -1,3 +1,5 @@
+export const DEFAULT_MAX_WAITING_TIME_MS = 60_000
+
 export interface IBatchAggregatorOptions {
   /**
    * @description Maximum number of parallel tasks (default: unlimited)
@@ -26,7 +28,7 @@ export interface IBatchAggregatorOptions {
 
   /**
    * @description Allows timers to avoid blocking the event loop
-   * @default false
+   * @default true
    */
   unrefTimeouts?: boolean
 }

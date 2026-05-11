@@ -1,5 +1,6 @@
 import { AbortError, SilentAbortError, TimeoutError } from '../utils/errors'
 import { isLoaderError } from '../utils/is'
+import { unrefTimer } from '../utils/timer'
 import { ITask, ITimekeeper, IUnlimitedTimekeeperMetrics, UnlimitedTimekeeperOptions } from './interfaces'
 import { Task } from './task'
 import createDebug from 'debug'
@@ -72,12 +73,13 @@ export class UnlimitedTimekeeper<D, M extends IUnlimitedTimekeeperMetrics = IUnl
   private startRunnerTimeout() {
     this.clearRunnerTimeout()
 
-    const tid = setTimeout(() => {
-      debug(`The current task is started by a timer. id=${this.currentTask?.id}`)
-      this.runCurrentTask()
-    }, this.options.runMs)
-    if (this.options.unrefTimeouts) tid?.unref?.()
-    this.tidRunner = tid
+    this.tidRunner = unrefTimer(
+      setTimeout(() => {
+        debug(`The current task is started by a timer. id=${this.currentTask?.id}`)
+        this.runCurrentTask()
+      }, this.options.runMs),
+      this.options.unrefTimeouts,
+    )
   }
 
   private clearRunnerTimeout() {
@@ -107,9 +109,10 @@ export class UnlimitedTimekeeper<D, M extends IUnlimitedTimekeeperMetrics = IUnl
     task.status = 'runned'
     task.runnedAt = Date.now()
     task.controller = task.controller || new AbortController()
-    const taskTid = setTimeout(() => this.abort(task.id, new TimeoutError(this.options.timeoutMs)), this.options.timeoutMs)
-    if (this.options.unrefTimeouts) taskTid?.unref?.()
-    task.tid = taskTid
+    task.tid = unrefTimer(
+      setTimeout(() => this.abort(task.id, new TimeoutError(this.options.timeoutMs)), this.options.timeoutMs),
+      this.options.unrefTimeouts,
+    )
 
     this.runnedTasks.set(task.id, task)
     this.metrics?.runTask?.(this.runnedTasks.size, task.inner)

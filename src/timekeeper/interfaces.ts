@@ -25,6 +25,10 @@ export interface UnlimitedTimekeeperOptions<D> {
   runner: TimekeeperRunnerCallback<D>
   timeoutMs: number
   callRejectedTask?: boolean
+  /**
+   * @description Allows timers to avoid blocking the event loop
+   * @default true
+   */
   unrefTimeouts?: boolean
 }
 
@@ -39,10 +43,10 @@ export interface IUnlimitedTimekeeperMetrics<D = any> {
   create?: () => void
   forcedRun?: () => void
   abort?: (task: ITask<D>, error: unknown) => void
-  runTask?: (runnedSize: number, task: ITask<D>) => void
+  runTask?: (size: number, task: ITask<D>) => void
   resolveTask?: (task: ITask<D>) => void
   rejectTask?: (error: unknown, task: ITask<D>) => void
 }
 export interface ILimitedTimekeeperMetrics<D = any> extends IUnlimitedTimekeeperMetrics<D> {
-  waitTask?: (waitListSize: number) => void
+  waitTask?: (size: number) => void
 }
