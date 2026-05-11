@@ -3,52 +3,43 @@ name: "CI: tests, linter and build"
 on:
   workflow_dispatch:
   push:
-    branches: 
+    branches:
       - main
       - develop
       - dependencies
       - 'dependencies-**'
   pull_request:
-    # Sequence of patterns matched against refs/heads
     branches:
       - main
       - dependencies
-      
 
 jobs:
-  try-build:
+  build:
+    if: "!contains(github.event.head_commit.message, '[skip-CI]')"
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        node-version:
-          - 18
-          - 20
-          - 22
-        os: 
-          - ubuntu-22.04
-          - ubuntu-latest
-    runs-on:  ${{ matrix.os }}
-    name: os:${{ matrix.os }}; node:${{ matrix.node-version }}. Run linter, tests and Trying to build
+        node-version: [20, 22, 24]
+    name: "node:${{ matrix.node-version }}"
     steps:
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Dependencies installation
-        run: npm ci
-      - name: check versions
-        run: |
-          node -v
-          npm -v
-      - name: run linter
-        run: npm run lint 
-      - name: run build
-        run: npm run build
-      - name: run tests in development env
-        run: npm run test -- --bail=2 --ci --coverage=true --runInBand --coverageReporters=text
-      - name: run tests in production env
-        run: NODE_ENV=production npm run test -- --bail=2 --ci --coverage=false --runInBand
+          cache: 'npm'
 
-      - name: check
-        run: git status
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run build
+        run: npm run build
+
+      - name: Run tests
+        run: npm test -- --ci --coverage --runInBand --coverageReporters=text

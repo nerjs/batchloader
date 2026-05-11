@@ -1,31 +1,56 @@
 name: "SYNC: dependencies with main"
 
-
 on:
   push:
-    branches: 
+    branches:
       - main
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
-  # This workflow contains a single job called "bump-version"
   sync:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - name: Check out source
+      - name: Check out dependencies
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PUBLISH_TOKEN }}
           ref: dependencies
-          
-      - name: fetch
-        run: git fetch
+          fetch-depth: 0
+          token: ${{ secrets.PUBLISH_TOKEN }}
 
-      - name: pull main
-        run: git merge origin/main --no-edit
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: push into dependencies
+      - name: Try merge main
+        id: merge
+        run: |
+          git fetch origin main
+          if git merge origin/main -m "Sync main to dependencies [skip-CI]"; then
+            echo "result=success" >> $GITHUB_OUTPUT
+          else
+            git merge --abort
+            echo "result=conflict" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Push if no conflicts
+        if: steps.merge.outputs.result == 'success'
         run: git push origin dependencies
+
+      - name: Create PR if conflicts
+        if: steps.merge.outputs.result == 'conflict'
+        env:
+          GH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        run: |
+          existing=$(gh pr list --base dependencies --head main --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            echo "Sync PR #$existing already exists"
+          else
+            gh pr create --base dependencies --head main \
+              --title "Sync: merge main into dependencies (conflicts)" \
+              --body "Merge conflicts. Resolve manually."
+          fi
