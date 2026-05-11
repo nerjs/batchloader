@@ -18,8 +18,8 @@ const createTimekeeperMetrics = (metrics?: IBatchAggregatorMetrics): ILimitedTim
 
   if (metrics.resolveBatch) tkMetrics.resolveTask = task => metrics.resolveBatch?.(task.data.requests.length)
   if (metrics.rejectBatch) tkMetrics.rejectTask = (_, task) => metrics.rejectBatch?.(task.data.requests.length)
-  if (metrics.parallelBatches) tkMetrics.runTask = runnedSize => metrics.parallelBatches?.(runnedSize)
-  if (metrics.waitingBatches) tkMetrics.waitTask = runnedSize => metrics.waitingBatches?.(runnedSize)
+  if (metrics.parallelBatches) tkMetrics.runTask = size => metrics.parallelBatches?.(size)
+  if (metrics.waitingBatches) tkMetrics.waitTask = size => metrics.waitingBatches?.(size)
 
   return tkMetrics
 }
@@ -28,11 +28,11 @@ export class BatchAggregator<T, R> {
   private readonly timekeeper: ITimekeeper<TaskData<T, R>>
 
   private readonly batchRunner = async (task: ITask<TaskData<T, R>>, signal: AbortSignal) => {
-    this.metrics?.rejectBatch?.(task.data.requests.length)
+    this.metrics?.runBatch?.(task.data.requests.length)
     debug(`Running batchRunner with a query array of length ${task.data.requests.length}. task id="${task.id}"`)
     const response = await this.batchLoaderFn([...task.data.requests], signal)
     if (!Array.isArray(response) || response.length !== task.data.requests.length)
-      throw new LoaderError(`The result of batchLoadFn must be an array equal in length to the query array `)
+      throw new LoaderError(`The result of batchLoadFn must be an array equal in length to the query array`)
 
     task.data.responses = response
   }
@@ -42,7 +42,7 @@ export class BatchAggregator<T, R> {
     private readonly options: IBatchAggregatorOptions,
     private readonly metrics?: IBatchAggregatorMetrics,
   ) {
-    const { concurrencyLimit, maxWaitingTimeMs, batchTimeMs: runMs, timeoutMs } = options
+    const { concurrencyLimit, maxWaitingTimeMs, batchTimeMs: runMs, timeoutMs, unrefTimeouts } = options
     const initialDataFactory = () => ({ requests: [], responses: [] })
     this.timekeeper =
       concurrencyLimit && concurrencyLimit > 0 && concurrencyLimit < Infinity
@@ -55,6 +55,7 @@ export class BatchAggregator<T, R> {
               runner: this.batchRunner,
               timeoutMs,
               callRejectedTask: false,
+              unrefTimeouts,
             },
             createTimekeeperMetrics(metrics),
           )
@@ -65,6 +66,7 @@ export class BatchAggregator<T, R> {
               runner: this.batchRunner,
               timeoutMs,
               callRejectedTask: false,
+              unrefTimeouts,
             },
             createTimekeeperMetrics(metrics),
           )
@@ -86,7 +88,7 @@ export class BatchAggregator<T, R> {
     const task = this.getCurrentTask()
     const index = task.data.requests.length
     this.metrics?.loadBatchItem?.()
-    debug(`Load data. task id="${task.id}"; curent index="${index}"`)
+    debug(`Load data. task id="${task.id}"; current index="${index}"`)
     task.data.requests.push(request)
     await this.timekeeper.wait(task)
 

@@ -72,10 +72,12 @@ export class UnlimitedTimekeeper<D, M extends IUnlimitedTimekeeperMetrics = IUnl
   private startRunnerTimeout() {
     this.clearRunnerTimeout()
 
-    this.tidRunner = setTimeout(() => {
+    const tid = setTimeout(() => {
       debug(`The current task is started by a timer. id=${this.currentTask?.id}`)
       this.runCurrentTask()
-    }, this.options.runMs)?.unref()
+    }, this.options.runMs)
+    if (this.options.unrefTimeouts) tid?.unref?.()
+    this.tidRunner = tid
   }
 
   private clearRunnerTimeout() {
@@ -103,8 +105,11 @@ export class UnlimitedTimekeeper<D, M extends IUnlimitedTimekeeperMetrics = IUnl
 
   protected runTask(task: Task<D>) {
     task.status = 'runned'
+    task.runnedAt = Date.now()
     task.controller = task.controller || new AbortController()
-    task.tid = setTimeout(() => this.abort(task.id, new TimeoutError(this.options.timeoutMs)), this.options.timeoutMs)?.unref()
+    const taskTid = setTimeout(() => this.abort(task.id, new TimeoutError(this.options.timeoutMs)), this.options.timeoutMs)
+    if (this.options.unrefTimeouts) taskTid?.unref?.()
+    task.tid = taskTid
 
     this.runnedTasks.set(task.id, task)
     this.metrics?.runTask?.(this.runnedTasks.size, task.inner)

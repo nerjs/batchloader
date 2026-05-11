@@ -47,7 +47,9 @@ export class Deduplicator<T, R> {
   }
 
   private createTimeout(key: Key): NodeJS.Timeout {
-    return setTimeout(() => this.callError(key, new TimeoutError(this.options.timeoutMs)), this.options.timeoutMs)
+    const tid = setTimeout(() => this.callError(key, new TimeoutError(this.options.timeoutMs)), this.options.timeoutMs)
+    if (this.options.unrefTimeouts) tid?.unref?.()
+    return tid
   }
 
   private createRunner(key: Key, query: T): Defer<R> {
@@ -56,7 +58,8 @@ export class Deduplicator<T, R> {
     const controller = new AbortController()
 
     const tid = this.createTimeout(key)
-    if (this.options.unrefTimeouts) tid?.unref?.()
+
+    this.runners.set(key, { defer, controller, tid })
 
     this.run(query, controller.signal)
       .then(result => defer.resolve(result))
@@ -67,8 +70,6 @@ export class Deduplicator<T, R> {
         if (!controller.signal.aborted) controller.abort(new RejectedAbortError('deduplicate'))
       })
       .finally(() => this.clearRunner(key))
-
-    this.runners.set(key, { defer, controller, tid })
 
     return defer
   }

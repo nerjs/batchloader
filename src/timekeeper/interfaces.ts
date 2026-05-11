@@ -2,10 +2,10 @@ export type TaskStatus = 'pending' | 'runned' | 'resolved' | 'rejected'
 
 export interface ITask<D> {
   readonly id: string
-  status: TaskStatus
-  data: D
-  runnedAt: number | null
-  createdAt: number
+  readonly status: TaskStatus
+  readonly data: D
+  readonly runnedAt: number | null
+  readonly createdAt: number
 }
 
 export type TimekeeperRunnerCallback<D> = (task: ITask<D>, signal: AbortSignal) => Promise<void> | void
@@ -25,6 +25,7 @@ export interface UnlimitedTimekeeperOptions<D> {
   runner: TimekeeperRunnerCallback<D>
   timeoutMs: number
   callRejectedTask?: boolean
+  unrefTimeouts?: boolean
 }
 
 export interface LimitedOptions {

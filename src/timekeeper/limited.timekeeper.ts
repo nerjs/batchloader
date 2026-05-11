@@ -22,26 +22,31 @@ export class LimitedTimekeeper<D> extends UnlimitedTimekeeper<D, ILimitedTimekee
 
   private runNextWaitingTask() {
     const next = this.waitingTasks.shift()
-    if (next) {
-      if (next.tid) clearTimeout(next.tid)
-      debug(`Attempting to run a task from the waiting list. id="${next.id}"`)
-      this.runTask(next)
-    }
+    if (!next || next.status !== 'pending') return
+    if (next.tid) clearTimeout(next.tid)
+    debug(`Attempting to run a task from the waiting list. id="${next.id}"`)
+    this.runTask(next)
   }
 
   protected runTask(task: Task<D>): void {
-    if (this.runnedTasks.size < this.limitedOptions.concurrencyLimit) {
-      super.runTask(task)
-      task.defer.promise.finally(() => this.runNextWaitingTask()).catch(() => {})
+    if (this.runnedTasks.size >= this.limitedOptions.concurrencyLimit) {
+      this.enqueueTask(task)
       return
     }
+    super.runTask(task)
+    task.defer.promise.finally(() => this.runNextWaitingTask()).catch(() => {})
+  }
+
+  private enqueueTask(task: Task<D>): void {
     const runnedTime = Date.now()
-    task.tid = setTimeout(() => {
+    const tid = setTimeout(() => {
       debug(
         `A task on the waiting list is waiting longer than it should. id="${task.id}"; time="${Date.now() - runnedTime}"; maxWaitingTimeMs="${this.limitedOptions.maxWaitingTimeMs}"`,
       )
       this.abort(task.id, new TimeoutError(this.limitedOptions.maxWaitingTimeMs))
-    }, this.limitedOptions.maxWaitingTimeMs)?.unref()
+    }, this.limitedOptions.maxWaitingTimeMs)
+    if (this.options.unrefTimeouts) tid?.unref?.()
+    task.tid = tid
     this.waitingTasks.push(task)
     this.metrics?.waitTask?.(this.waitingTasks.length)
     debug(`The task has been added to the waiting list. id="${task.id}"`)
@@ -61,7 +66,15 @@ export class LimitedTimekeeper<D> extends UnlimitedTimekeeper<D, ILimitedTimekee
   }
 
   clear(): void {
+    const waiting = this.waitingTasks
+    this.waitingTasks = []
     super.clear()
-    this.waitingTasks.forEach(task => this.abort(task.inner, new SilentAbortError('timekeeper')))
+    waiting.forEach(task => {
+      if (task.tid) clearTimeout(task.tid)
+      const error = new SilentAbortError('timekeeper')
+      this.metrics?.rejectTask?.(error, task.inner)
+      this.callAbortedRunner(task, error)
+      debug(`The task was rejected. id="${task.id}"`)
+    })
   }
 }
