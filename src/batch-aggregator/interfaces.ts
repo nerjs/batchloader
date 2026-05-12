@@ -1,3 +1,5 @@
+export const DEFAULT_MAX_WAITING_TIME_MS = 60_000
+
 export interface IBatchAggregatorOptions {
   /**
    * @description Maximum number of parallel tasks (default: unlimited)
@@ -23,6 +25,12 @@ export interface IBatchAggregatorOptions {
    * @description Maximum execution time for batchFn (the function passed as the first argument)
    */
   timeoutMs: number
+
+  /**
+   * @description Allows timers to avoid blocking the event loop
+   * @default true
+   */
+  unrefTimeouts?: boolean
 }
 
 export type BatchLoaderFn<T, R> = (batchArray: T[], signal: AbortSignal) => Promise<R[]> | R[]

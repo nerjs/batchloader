@@ -1,4 +1,5 @@
 import { SilentAbortError, TimeoutError } from '../utils/errors'
+import { unrefTimer } from '../utils/timer'
 import { ILimitedTimekeeperMetrics, ITask, ITimekeeper, LimitedOptions, LimitedTimekeeperOptions } from './interfaces'
 import { Task } from './task'
 import { UnlimitedTimekeeper } from './unlimited.timekeeper'
@@ -22,26 +23,32 @@ export class LimitedTimekeeper<D> extends UnlimitedTimekeeper<D, ILimitedTimekee
 
   private runNextWaitingTask() {
     const next = this.waitingTasks.shift()
-    if (next) {
-      if (next.tid) clearTimeout(next.tid)
-      debug(`Attempting to run a task from the waiting list. id="${next.id}"`)
-      this.runTask(next)
-    }
+    if (!next || next.status !== 'pending') return
+    if (next.tid) clearTimeout(next.tid)
+    debug(`Attempting to run a task from the waiting list. id="${next.id}"`)
+    this.runTask(next)
   }
 
   protected runTask(task: Task<D>): void {
-    if (this.runnedTasks.size < this.limitedOptions.concurrencyLimit) {
-      super.runTask(task)
-      task.defer.promise.finally(() => this.runNextWaitingTask()).catch(() => {})
+    if (this.runnedTasks.size >= this.limitedOptions.concurrencyLimit) {
+      this.enqueueTask(task)
       return
     }
-    const runnedTime = Date.now()
-    task.tid = setTimeout(() => {
-      debug(
-        `A task on the waiting list is waiting longer than it should. id="${task.id}"; time="${Date.now() - runnedTime}"; maxWaitingTimeMs="${this.limitedOptions.maxWaitingTimeMs}"`,
-      )
-      this.abort(task.id, new TimeoutError(this.limitedOptions.maxWaitingTimeMs))
-    }, this.limitedOptions.maxWaitingTimeMs)?.unref()
+    super.runTask(task)
+    task.defer.promise.finally(() => this.runNextWaitingTask()).catch(() => {})
+  }
+
+  private enqueueTask(task: Task<D>): void {
+    const enqueuedAt = Date.now()
+    task.tid = unrefTimer(
+      setTimeout(() => {
+        debug(
+          `A task on the waiting list is waiting longer than it should. id="${task.id}"; time="${Date.now() - enqueuedAt}"; maxWaitingTimeMs="${this.limitedOptions.maxWaitingTimeMs}"`,
+        )
+        this.abort(task.id, new TimeoutError(this.limitedOptions.maxWaitingTimeMs))
+      }, this.limitedOptions.maxWaitingTimeMs),
+      this.options.unrefTimeouts,
+    )
     this.waitingTasks.push(task)
     this.metrics?.waitTask?.(this.waitingTasks.length)
     debug(`The task has been added to the waiting list. id="${task.id}"`)
@@ -54,6 +61,11 @@ export class LimitedTimekeeper<D> extends UnlimitedTimekeeper<D, ILimitedTimekee
   protected rejectPendingTask(task: Task<D>, error: unknown): void {
     if (this.currentTask?.id === task.id) return super.rejectPendingTask(task, error)
     this.waitingTasks = this.waitingTasks.filter(({ id }) => id !== task.id)
+    this.rejectWaitingTask(task, error)
+  }
+
+  private rejectWaitingTask(task: Task<D>, error: unknown): void {
+    if (task.status !== 'pending') return
     if (task.tid) clearTimeout(task.tid)
     this.metrics?.rejectTask?.(error, task.inner)
     this.callAbortedRunner(task, error)
@@ -61,7 +73,10 @@ export class LimitedTimekeeper<D> extends UnlimitedTimekeeper<D, ILimitedTimekee
   }
 
   clear(): void {
+    const waiting = this.waitingTasks
+    this.waitingTasks = []
     super.clear()
-    this.waitingTasks.forEach(task => this.abort(task.inner, new SilentAbortError('timekeeper')))
+    const error = new SilentAbortError('timekeeper')
+    waiting.forEach(task => this.rejectWaitingTask(task, error))
   }
 }

@@ -251,7 +251,7 @@ Thrown when a task is manually aborted during execution, explicitly indicating t
 
 - **Request Grouping**: Groups requests into batches based on size or timeout.
 - **Concurrency Control**: Limits the number of tasks that can run in parallel (`concurrencyLimit`).
-- **Timeout Handling**: Supports execution timeouts (`batchTimeout`) and waiting timeouts (`maxWaitingTimeMs`).
+- **Timeout Handling**: Supports execution timeouts (`timeoutMs`) and waiting timeouts (`maxWaitingTimeMs`).
 
 ---
 
@@ -263,7 +263,7 @@ interface IBatchAggregatorOptions {
   maxBatchSize: number;          // Maximum number of requests per batch
   batchTimeMs: number;           // Maximum time to form a batch
   maxWaitingTimeMs?: number;     // Maximum waiting time for tasks in the queue (only if concurrencyLimit > 0)
-  batchTimeout?: number;         // Maximum execution time for batchFn (the function passed as the first argument)
+  timeoutMs: number;             // Maximum execution time for batchFn (the function passed as the first argument)
 }
 ```
 
@@ -284,7 +284,7 @@ const aggregator = new BatchAggregator<number, number>(
   {
     maxBatchSize: 3,
     batchTimeMs: 100,
-    batchTimeout: 500,
+    timeoutMs: 500,
   }
 )
 
@@ -311,7 +311,7 @@ const aggregator = new BatchAggregator<number, number>(
   {
     maxBatchSize: 2,
     batchTimeMs: 100,
-    batchTimeout: 500,
+    timeoutMs: 500,
     concurrencyLimit: 2, // Limit to 2 parallel tasks
   }
 )
@@ -340,7 +340,7 @@ const aggregator = new BatchAggregator<number, number>(
   {
     maxBatchSize: 1,
     batchTimeMs: 100,
-    batchTimeout: 500,
+    timeoutMs: 500,
     concurrencyLimit: 1,
     maxWaitingTimeMs: 100, // Timeout for tasks in the queue
   }
