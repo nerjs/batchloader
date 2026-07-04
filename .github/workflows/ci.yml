@@ -24,7 +24,7 @@ jobs:
     name: "node:${{ matrix.node-version }}"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v6
