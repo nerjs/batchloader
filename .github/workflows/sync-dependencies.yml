@@ -1,56 +1,25 @@
-name: "SYNC: dependencies with main"
+name: "SYNC: dependencies <- master"
 
 on:
   push:
-    branches:
-      - main
+    branches: 
+      - master
+  workflow_dispatch:
 
 permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: sync-dependencies
+  cancel-in-progress: false
+
 jobs:
   sync:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Check out dependencies
-        uses: actions/checkout@v6
+      - uses: nerjs/branch-sync-action@v1
         with:
-          ref: dependencies
-          fetch-depth: 0
           token: ${{ secrets.PUBLISH_TOKEN }}
-
-      - name: Configure git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Try merge main
-        id: merge
-        run: |
-          git fetch origin main
-          if git merge origin/main -m "Sync main to dependencies [skip-CI]"; then
-            echo "result=success" >> $GITHUB_OUTPUT
-          else
-            git merge --abort
-            echo "result=conflict" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Push if no conflicts
-        if: steps.merge.outputs.result == 'success'
-        run: git push origin dependencies
-
-      - name: Create PR if conflicts
-        if: steps.merge.outputs.result == 'conflict'
-        env:
-          GH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
-        run: |
-          existing=$(gh pr list --base dependencies --head main --json number --jq '.[0].number')
-          if [ -n "$existing" ]; then
-            echo "Sync PR #$existing already exists"
-          else
-            gh pr create --base dependencies --head main \
-              --title "Sync: merge main into dependencies (conflicts)" \
-              --body "Merge conflicts. Resolve manually."
-          fi
+          base: master
+          head: dependencies
