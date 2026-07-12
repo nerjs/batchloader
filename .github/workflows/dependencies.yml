@@ -1,0 +1,18 @@
+name: "CI: dependencies"
+
+on:
+  push:
+    branches:
+      - dependencies
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Run checks
+        uses: ./.github/actions/checks
+        with:
+          node-version: 22

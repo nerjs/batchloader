@@ -5,39 +5,24 @@ on:
   push:
     branches:
       - master
-      - dependencies
   pull_request:
     branches:
       - master
-      - dependencies
 
 jobs:
-  build:
+  ci:
     if: ${{ !contains(github.event.head_commit.message || github.event.pull_request.title || '', '[skip-CI]') }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        node-version: [20, 22, 24]
-    name: "node:${{ matrix.node-version }}"
+        node: [18, 20, 22, 24]
+    name: "node:${{ matrix.node }}"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v6
+      - name: Run checks
+        uses: ./.github/actions/checks
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run linter
-        run: npm run lint
-
-      - name: Run build
-        run: npm run build
-
-      - name: Run tests
-        run: npm test -- --ci --coverage --runInBand --coverageReporters=text
+          node-version: ${{ matrix.node }}
