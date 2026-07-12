@@ -20,6 +20,6 @@ jobs:
     steps:
       - uses: voidmason/branch-sync-action@v1
         with:
-          token: ${{ secrets.PUBLISH_TOKEN }}
+          token: ${{ secrets.RELEASE_TOKEN }}
           base: master
           head: dependencies
