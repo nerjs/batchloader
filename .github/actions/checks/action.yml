@@ -1,0 +1,32 @@
+name: "Checks"
+description: "Install dependencies, lint, build and test on a given Node.js version"
+
+inputs:
+  node-version:
+    description: "Node.js version to run the checks on"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js ${{ inputs.node-version }}
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci
+
+    - name: Run linter
+      shell: bash
+      run: npm run lint
+
+    - name: Run build
+      shell: bash
+      run: npm run build
+
+    - name: Run tests
+      shell: bash
+      run: npm test -- --ci --coverage --runInBand --coverageReporters=text
