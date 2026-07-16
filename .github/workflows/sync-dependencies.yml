@@ -18,7 +18,7 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: voidmason/branch-sync-action@v1
+      - uses: voidmason/branch-sync@v1
         with:
           token: ${{ secrets.RELEASE_TOKEN }}
           base: master
