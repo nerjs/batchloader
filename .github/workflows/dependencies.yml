@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - dependencies
+  pull_request:
+    branches:
+      - dependencies
 
 jobs:
   check:
