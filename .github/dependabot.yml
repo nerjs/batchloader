@@ -9,7 +9,6 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
-      time: "17:00"
     assignees:
       - "nerjs"
     labels:
@@ -18,13 +17,14 @@ updates:
     target-branch: "dependencies"
     open-pull-requests-limit: 5
     groups:
-      typescript:
+      infra:
         patterns:
           - "typescript"
           - "@types/node"
-
-      eslint:
-        patterns:
+          - "jest"
+          - "jest-watch-typeahead"
+          - "ts-jest"
+          - "@types/jest"
           - "eslint"
           - "@eslint/eslintrc"
           - "@eslint/js"
@@ -34,12 +34,6 @@ updates:
           - "prettier"
           - "typescript-eslint"
 
-      jest:
-        patterns:
-          - "jest"
-          - "jest-watch-typeahead"
-          - "ts-jest"
-          - "@types/jest"
       debug:
         patterns:
           - "debug"
@@ -49,7 +43,6 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-      time: "17:00"
     assignees:
       - "nerjs"
     labels:
