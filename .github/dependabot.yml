@@ -21,10 +21,9 @@ updates:
         patterns:
           - "typescript"
           - "@types/node"
-          - "jest"
-          - "jest-watch-typeahead"
-          - "ts-jest"
-          - "@types/jest"
+      
+      codestyle:
+        patterns:
           - "eslint"
           - "@eslint/eslintrc"
           - "@eslint/js"
@@ -33,6 +32,14 @@ updates:
           - "eslint-plugin-prettier"
           - "prettier"
           - "typescript-eslint"
+
+      tests:
+        patterns:
+          - "jest"
+          - "jest-watch-typeahead"
+          - "@swc/core"
+          - "@swc/jest"
+          - "@types/jest"
 
       debug:
         patterns:
