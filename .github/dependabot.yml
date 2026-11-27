@@ -16,6 +16,10 @@ updates:
       - "bot"
     target-branch: "dependencies"
     open-pull-requests-limit: 5
+    ignore:
+      # typescript-eslint caps its typescript peer at <6.1.0; TS 7 comes in as the tsgo alias
+      - dependency-name: "typescript"
+        versions: [">=6.1.0"]
     groups:
       infra:
         patterns:
